@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.7.0
 	github.com/imdario/mergo v0.3.12
 	github.com/json-iterator/go v1.1.11
-	github.com/mongodb/terraform-provider-mongodbatlas v0.9.1
+	github.com/mongodb/terraform-provider-mongodbatlas v0.9.2-0.20210729194514-c828847c5c7b
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3
 	go.bytebuilders.dev/audit v0.0.7

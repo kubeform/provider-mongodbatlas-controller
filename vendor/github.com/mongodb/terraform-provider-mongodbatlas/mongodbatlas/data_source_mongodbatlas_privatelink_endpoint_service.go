@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/spf13/cast"
-
-	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
 func dataSourceMongoDBAtlasPrivateEndpointServiceLink() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceMongoDBAtlasPrivateEndpointServiceLinkRead,
+		ReadContext: dataSourceMongoDBAtlasPrivateEndpointServiceLinkRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:     schema.TypeString,
@@ -70,34 +69,34 @@ func dataSourceMongoDBAtlasPrivateEndpointServiceLink() *schema.Resource {
 	}
 }
 
-func dataSourceMongoDBAtlasPrivateEndpointServiceLinkRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceMongoDBAtlasPrivateEndpointServiceLinkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// Get client connection.
-	conn := meta.(*matlas.Client)
+	conn := meta.(*MongoDBClient).Atlas
 
 	projectID := d.Get("project_id").(string)
-	privateLinkID := d.Get("private_link_id").(string)
-	endpointServiceID := d.Get("endpoint_service_id").(string)
+	privateLinkID := getEncodedID(d.Get("private_link_id").(string), "private_link_id")
+	endpointServiceID := getEncodedID(d.Get("endpoint_service_id").(string), "endpoint_service_id")
 	providerName := d.Get("provider_name").(string)
 
-	serviceEndpoint, _, err := conn.PrivateEndpoints.GetOnePrivateEndpoint(context.Background(), projectID, providerName, privateLinkID, endpointServiceID)
+	serviceEndpoint, _, err := conn.PrivateEndpoints.GetOnePrivateEndpoint(ctx, projectID, providerName, privateLinkID, endpointServiceID)
 	if err != nil {
-		return fmt.Errorf(errorServiceEndpointRead, endpointServiceID, err)
+		return diag.FromErr(fmt.Errorf(errorServiceEndpointRead, endpointServiceID, err))
 	}
 
 	if err := d.Set("delete_requested", cast.ToBool(serviceEndpoint.DeleteRequested)); err != nil {
-		return fmt.Errorf(errorEndpointSetting, "delete_requested", endpointServiceID, err)
+		return diag.FromErr(fmt.Errorf(errorEndpointSetting, "delete_requested", endpointServiceID, err))
 	}
 
 	if err := d.Set("error_message", serviceEndpoint.ErrorMessage); err != nil {
-		return fmt.Errorf(errorEndpointSetting, "error_message", endpointServiceID, err)
+		return diag.FromErr(fmt.Errorf(errorEndpointSetting, "error_message", endpointServiceID, err))
 	}
 
 	if err := d.Set("aws_connection_status", serviceEndpoint.AWSConnectionStatus); err != nil {
-		return fmt.Errorf(errorEndpointSetting, "aws_connection_status", endpointServiceID, err)
+		return diag.FromErr(fmt.Errorf(errorEndpointSetting, "aws_connection_status", endpointServiceID, err))
 	}
 
 	if err := d.Set("azure_status", serviceEndpoint.AzureStatus); err != nil {
-		return fmt.Errorf(errorEndpointSetting, "azure_status", endpointServiceID, err)
+		return diag.FromErr(fmt.Errorf(errorEndpointSetting, "azure_status", endpointServiceID, err))
 	}
 
 	d.SetId(encodeStateID(map[string]string{

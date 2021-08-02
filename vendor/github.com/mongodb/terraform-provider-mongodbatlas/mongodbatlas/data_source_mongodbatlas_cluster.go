@@ -3,16 +3,20 @@ package mongodbatlas
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/spf13/cast"
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
 func dataSourceMongoDBAtlasCluster() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceMongoDBAtlasClusterRead,
+		ReadContext: dataSourceMongoDBAtlasClusterRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:     schema.TypeString,
@@ -42,23 +46,13 @@ func dataSourceMongoDBAtlasCluster() *schema.Resource {
 				Type:       schema.TypeMap,
 				Computed:   true,
 				Deprecated: "use bi_connector_config instead",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"enabled": {
-							Type:     schema.TypeString, // Convert to Bool
-							Computed: true,
-						},
-						"read_preference": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
 				},
 			},
 			"bi_connector_config": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -78,8 +72,6 @@ func dataSourceMongoDBAtlasCluster() *schema.Resource {
 			},
 			"connection_strings": {
 				Type:     schema.TypeList,
-				MinItems: 1,
-				MaxItems: 1,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -195,6 +187,10 @@ func dataSourceMongoDBAtlasCluster() *schema.Resource {
 				Computed: true,
 			},
 			"provider_encrypt_ebs_volume": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"provider_encrypt_ebs_volume_flag": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -319,98 +315,117 @@ func dataSourceMongoDBAtlasCluster() *schema.Resource {
 	}
 }
 
-func dataSourceMongoDBAtlasClusterRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// Get client connection.
-	conn := meta.(*matlas.Client)
+	conn := meta.(*MongoDBClient).Atlas
 	projectID := d.Get("project_id").(string)
 	clusterName := d.Get("name").(string)
 
-	cluster, resp, err := conn.Clusters.Get(context.Background(), projectID, clusterName)
+	cluster, resp, err := conn.Clusters.Get(ctx, projectID, clusterName)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
 
-		return fmt.Errorf(errorClusterRead, clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterRead, clusterName, err))
+	}
+
+	if cluster.ProviderSettings != nil && (cast.ToString(cluster.ProviderSettings.ProviderName) == "AWS" ||
+		cast.ToString(cluster.ProviderSettings.ProviderName) == "AZURE") {
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"PRIVATE_ENDPOINTS_NIL", "PRIVATE_ENDPOINTS_EMPTY"},
+			Target:     []string{"PRIVATE_ENDPOINTS_EXISTS", "NORMAL"},
+			Refresh:    datasourceClusterPrivateEndpointRefreshFunc(clusterName, projectID, conn),
+			Timeout:    10 * time.Minute,
+			MinTimeout: 1 * time.Minute,
+			Delay:      3 * time.Minute,
+		}
+
+		resp, err := stateConf.WaitForStateContext(ctx)
+		if err != nil {
+			log.Printf("[ERROR] %v", fmt.Errorf(errorClusterRead, clusterName, err))
+		} else {
+			cluster = resp.(*matlas.Cluster)
+		}
 	}
 
 	if err := d.Set("auto_scaling_disk_gb_enabled", cluster.AutoScaling.DiskGBEnabled); err != nil {
-		return fmt.Errorf(errorClusterSetting, "auto_scaling_disk_gb_enabled", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "auto_scaling_disk_gb_enabled", clusterName, err))
 	}
 
 	if err := d.Set("backup_enabled", cluster.BackupEnabled); err != nil {
-		return fmt.Errorf(errorClusterSetting, "backup_enabled", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "backup_enabled", clusterName, err))
 	}
 
 	if err := d.Set("pit_enabled", cluster.PitEnabled); err != nil {
-		return fmt.Errorf(errorClusterSetting, "pit_enabled", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "pit_enabled", clusterName, err))
 	}
 
 	if err := d.Set("provider_backup_enabled", cluster.ProviderBackupEnabled); err != nil {
-		return fmt.Errorf(errorClusterSetting, "provider_backup_enabled", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "provider_backup_enabled", clusterName, err))
 	}
 
 	if err := d.Set("cluster_type", cluster.ClusterType); err != nil {
-		return fmt.Errorf(errorClusterSetting, "cluster_type", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "cluster_type", clusterName, err))
 	}
 
 	if err := d.Set("connection_strings", flattenConnectionStrings(cluster.ConnectionStrings)); err != nil {
-		return fmt.Errorf(errorClusterSetting, "connection_strings", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "connection_strings", clusterName, err))
 	}
 
 	if err := d.Set("disk_size_gb", cluster.DiskSizeGB); err != nil {
-		return fmt.Errorf(errorClusterSetting, "disk_size_gb", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "disk_size_gb", clusterName, err))
 	}
 
 	if err := d.Set("encryption_at_rest_provider", cluster.EncryptionAtRestProvider); err != nil {
-		return fmt.Errorf(errorClusterSetting, "encryption_at_rest_provider", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "encryption_at_rest_provider", clusterName, err))
 	}
 
 	if err := d.Set("mongo_db_major_version", cluster.MongoDBMajorVersion); err != nil {
-		return fmt.Errorf(errorClusterSetting, "mongo_db_major_version", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "mongo_db_major_version", clusterName, err))
 	}
 
 	// Avoid Global Cluster issues. (NumShards is not present in Global Clusters)
 	if cluster.NumShards != nil {
 		if err := d.Set("num_shards", cluster.NumShards); err != nil {
-			return fmt.Errorf(errorClusterSetting, "num_shards", clusterName, err)
+			return diag.FromErr(fmt.Errorf(errorClusterSetting, "num_shards", clusterName, err))
 		}
 	}
 
 	if err := d.Set("mongo_db_version", cluster.MongoDBVersion); err != nil {
-		return fmt.Errorf(errorClusterSetting, "mongo_db_version", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "mongo_db_version", clusterName, err))
 	}
 
 	if err := d.Set("mongo_uri", cluster.MongoURI); err != nil {
-		return fmt.Errorf(errorClusterSetting, "mongo_uri", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "mongo_uri", clusterName, err))
 	}
 
 	if err := d.Set("mongo_uri_updated", cluster.MongoURIUpdated); err != nil {
-		return fmt.Errorf(errorClusterSetting, "mongo_uri_updated", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "mongo_uri_updated", clusterName, err))
 	}
 
 	if err := d.Set("mongo_uri_with_options", cluster.MongoURIWithOptions); err != nil {
-		return fmt.Errorf(errorClusterSetting, "mongo_uri_with_options", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "mongo_uri_with_options", clusterName, err))
 	}
 
 	if err := d.Set("paused", cluster.Paused); err != nil {
-		return fmt.Errorf(errorClusterSetting, "paused", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "paused", clusterName, err))
 	}
 
 	if err := d.Set("srv_address", cluster.SrvAddress); err != nil {
-		return fmt.Errorf(errorClusterSetting, "srv_address", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "srv_address", clusterName, err))
 	}
 
 	if err := d.Set("state_name", cluster.StateName); err != nil {
-		return fmt.Errorf(errorClusterSetting, "state_name", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "state_name", clusterName, err))
 	}
 
 	if err := d.Set("bi_connector", flattenBiConnector(cluster.BiConnector)); err != nil {
-		return fmt.Errorf(errorClusterSetting, "bi_connector", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "bi_connector", clusterName, err))
 	}
 
 	if err := d.Set("bi_connector_config", flattenBiConnectorConfig(cluster.BiConnector)); err != nil {
-		return fmt.Errorf(errorClusterSetting, "bi_connector_config", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "bi_connector_config", clusterName, err))
 	}
 
 	if cluster.ProviderSettings != nil {
@@ -418,28 +433,60 @@ func dataSourceMongoDBAtlasClusterRead(d *schema.ResourceData, meta interface{})
 	}
 
 	if err := d.Set("replication_specs", flattenReplicationSpecs(cluster.ReplicationSpecs)); err != nil {
-		return fmt.Errorf(errorClusterSetting, "replication_specs", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "replication_specs", clusterName, err))
 	}
 
 	if err := d.Set("replication_factor", cluster.ReplicationFactor); err != nil {
-		return fmt.Errorf(errorClusterSetting, "replication_factor", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "replication_factor", clusterName, err))
 	}
 
 	if err := d.Set("labels", flattenLabels(cluster.Labels)); err != nil {
-		return fmt.Errorf(errorClusterSetting, "labels", clusterName, err)
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "labels", clusterName, err))
 	}
 
 	// Get the snapshot policy and set the data
-	snapshotBackupPolicy, err := flattenCloudProviderSnapshotBackupPolicy(d, conn, projectID, clusterName)
+	snapshotBackupPolicy, err := flattenCloudProviderSnapshotBackupPolicy(ctx, d, conn, projectID, clusterName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("snapshot_backup_policy", snapshotBackupPolicy); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(cluster.ID)
 
 	return nil
+}
+
+func datasourceClusterPrivateEndpointRefreshFunc(name, projectID string, client *matlas.Client) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		cluster, resp, err := client.Clusters.Get(context.Background(), projectID, name)
+
+		if err != nil && cluster == nil && resp == nil {
+			return nil, "", err
+		} else if err != nil {
+			if resp.StatusCode == 404 {
+				return "", "DELETED", nil
+			}
+			if resp.StatusCode == 503 {
+				return "", "PENDING", nil
+			}
+			return nil, "", err
+		}
+
+		if cluster.ConnectionStrings != nil {
+			if cluster.ConnectionStrings.PrivateEndpoint == nil {
+				return cluster, "PRIVATE_ENDPOINTS_NIL", nil
+			}
+			if cluster.ConnectionStrings.PrivateEndpoint != nil && len(cluster.ConnectionStrings.PrivateEndpoint) == 0 {
+				return cluster, "PRIVATE_ENDPOINTS_EMPTY", nil
+			}
+			if cluster.ConnectionStrings.PrivateEndpoint != nil && len(cluster.ConnectionStrings.PrivateEndpoint) != 0 {
+				return cluster, "PRIVATE_ENDPOINTS_EXISTS", nil
+			}
+		}
+
+		return cluster, "NORMAL", nil
+	}
 }

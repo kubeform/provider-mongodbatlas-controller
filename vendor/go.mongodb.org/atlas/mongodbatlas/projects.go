@@ -21,17 +21,17 @@ import (
 )
 
 const (
-	// GroupOwner - Project Owner
+	// GroupOwner - Project Owner.
 	GroupOwner = "GROUP_OWNER"
-	// GroupReadOnly - Project Read Only
+	// GroupReadOnly - Project Read Only.
 	GroupReadOnly = "GROUP_READ_ONLY"
-	// GroupDataAccessAdmin - Project Data Access Admin
+	// GroupDataAccessAdmin - Project Data Access Admin.
 	GroupDataAccessAdmin = "GROUP_DATA_ACCESS_ADMIN"
-	// GroupDataAccessReadWrite - Project Data Access Read/Write
+	// GroupDataAccessReadWrite - Project Data Access Read/Write.
 	GroupDataAccessReadWrite = "GROUP_DATA_ACCESS_READ_WRITE"
-	// GroupDataAccessReadOnly - Project Data Access Read Only
+	// GroupDataAccessReadOnly - Project Data Access Read Only.
 	GroupDataAccessReadOnly = "GROUP_DATA_ACCESS_READ_ONLY"
-	projectBasePath         = "groups"
+	projectBasePath         = "api/atlas/v1.0/groups"
 )
 
 // ProjectsService is an interface for interfacing with the Projects
@@ -47,10 +47,16 @@ type ProjectsService interface {
 	GetProjectTeamsAssigned(context.Context, string) (*TeamsAssigned, *Response, error)
 	AddTeamsToProject(context.Context, string, []*ProjectTeam) (*TeamsAssigned, *Response, error)
 	RemoveUserFromProject(context.Context, string, string) (*Response, error)
+	Invitations(context.Context, string, *InvitationOptions) ([]*Invitation, *Response, error)
+	Invitation(context.Context, string, string) (*Invitation, *Response, error)
+	InviteUser(context.Context, string, *Invitation) (*Invitation, *Response, error)
+	UpdateInvitation(context.Context, string, *Invitation) (*Invitation, *Response, error)
+	UpdateInvitationByID(context.Context, string, string, *Invitation) (*Invitation, *Response, error)
+	DeleteInvitation(context.Context, string, string) (*Response, error)
 }
 
 // ProjectsServiceOp handles communication with the Projects related methods of the
-// MongoDB Atlas API
+// MongoDB Atlas API.
 type ProjectsServiceOp service
 
 var _ ProjectsService = &ProjectsServiceOp{}
@@ -65,21 +71,21 @@ type Project struct {
 	Links        []*Link `json:"links,omitempty"`
 }
 
-// Projects represents a array of project
+// Projects represents a array of project.
 type Projects struct {
 	Links      []*Link    `json:"links"`
 	Results    []*Project `json:"results"`
 	TotalCount int        `json:"totalCount"`
 }
 
-// Result is part og TeamsAssigned structure
+// Result is part og TeamsAssigned structure.
 type Result struct {
 	Links     []*Link  `json:"links"`
 	RoleNames []string `json:"roleNames"`
 	TeamID    string   `json:"teamId"`
 }
 
-// ProjectTeam reperesents the kind of role that has the team
+// ProjectTeam reperesents the kind of role that has the team.
 type ProjectTeam struct {
 	TeamID    string   `json:"teamId,omitempty"`
 	RoleNames []string `json:"roleNames,omitempty"`

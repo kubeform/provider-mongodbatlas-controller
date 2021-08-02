@@ -1,21 +1,24 @@
 package mongodbatlas
 
 import (
+	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
+	"hash/crc32"
 	"log"
 	"reflect"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/spf13/cast"
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
 // Provider returns the provider to be use by the code.
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"public_key": {
@@ -30,6 +33,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("MONGODB_ATLAS_PRIVATE_KEY", ""),
 				Description: "MongoDB Atlas Programmatic Private Key",
 			},
+			"base_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("MONGODB_ATLAS_BASE_URL", ""),
+				Description: "MongoDB Atlas Base URL",
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -39,7 +48,6 @@ func Provider() terraform.ResourceProvider {
 			"mongodbatlas_database_users":                        dataSourceMongoDBAtlasDatabaseUsers(),
 			"mongodbatlas_project":                               dataSourceMongoDBAtlasProject(),
 			"mongodbatlas_projects":                              dataSourceMongoDBAtlasProjects(),
-			"mongodbatlas_project_ip_whitelist":                  dataSourceMongoDBAtlasProjectIPWhitelist(),
 			"mongodbatlas_cluster":                               dataSourceMongoDBAtlasCluster(),
 			"mongodbatlas_clusters":                              dataSourceMongoDBAtlasClusters(),
 			"mongodbatlas_cloud_provider_snapshot":               dataSourceMongoDBAtlasCloudProviderSnapshot(),
@@ -59,8 +67,6 @@ func Provider() terraform.ResourceProvider {
 			"mongodbatlas_x509_authentication_database_user":     dataSourceMongoDBAtlasX509AuthDBUser(),
 			"mongodbatlas_privatelink_endpoint":                  dataSourceMongoDBAtlasPrivateLinkEndpoint(),
 			"mongodbatlas_privatelink_endpoint_service":          dataSourceMongoDBAtlasPrivateEndpointServiceLink(),
-			"mongodbatlas_private_endpoint":                      dataSourceMongoDBAtlasPrivateEndpoint(),
-			"mongodbatlas_private_endpoint_interface_link":       dataSourceMongoDBAtlasPrivateEndpointInterfaceLink(),
 			"mongodbatlas_cloud_provider_snapshot_backup_policy": dataSourceMongoDBAtlasCloudProviderSnapshotBackupPolicy(),
 			"mongodbatlas_third_party_integrations":              dataSourceMongoDBAtlasThirdPartyIntegrations(),
 			"mongodbatlas_third_party_integration":               dataSourceMongoDBAtlasThirdPartyIntegration(),
@@ -68,14 +74,21 @@ func Provider() terraform.ResourceProvider {
 			"mongodbatlas_cloud_provider_access":                 dataSourceMongoDBAtlasCloudProviderAccessList(),
 			"mongodbatlas_cloud_provider_access_setup":           dataSourceMongoDBAtlasCloudProviderAccessSetup(),
 			"mongodbatlas_custom_dns_configuration_cluster_aws":  dataSourceMongoDBAtlasCustomDNSConfigurationAWS(),
+			"mongodbatlas_online_archive":                        dataSourceMongoDBAtlasOnlineArchive(),
+			"mongodbatlas_online_archives":                       dataSourceMongoDBAtlasOnlineArchives(),
 			"mongodbatlas_ldap_configuration":                    dataSourceMongoDBAtlasLDAPConfiguration(),
 			"mongodbatlas_ldap_verify":                           dataSourceMongoDBAtlasLDAPVerify(),
+			"mongodbatlas_search_index":                          dataSourceMongoDBAtlasSearchIndex(),
+			"mongodbatlas_search_indexes":                        dataSourceMongoDBAtlasSearchIndexes(),
+			"mongodbatlas_data_lake":                             dataSourceMongoDBAtlasDataLake(),
+			"mongodbatlas_data_lakes":                            dataSourceMongoDBAtlasDataLakes(),
+			"mongodbatlas_event_trigger":                         dataSourceMongoDBAtlasEventTrigger(),
+			"mongodbatlas_event_triggers":                        dataSourceMongoDBAtlasEventTriggers(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"mongodbatlas_custom_db_role":                        resourceMongoDBAtlasCustomDBRole(),
 			"mongodbatlas_database_user":                         resourceMongoDBAtlasDatabaseUser(),
-			"mongodbatlas_project_ip_whitelist":                  resourceMongoDBAtlasProjectIPWhitelist(),
 			"mongodbatlas_project":                               resourceMongoDBAtlasProject(),
 			"mongodbatlas_cluster":                               resourceMongoDBAtlasCluster(),
 			"mongodbatlas_cloud_provider_snapshot":               resourceMongoDBAtlasCloudProviderSnapshot(),
@@ -93,30 +106,36 @@ func Provider() terraform.ResourceProvider {
 			"mongodbatlas_x509_authentication_database_user":     resourceMongoDBAtlasX509AuthDBUser(),
 			"mongodbatlas_privatelink_endpoint":                  resourceMongoDBAtlasPrivateLinkEndpoint(),
 			"mongodbatlas_privatelink_endpoint_service":          resourceMongoDBAtlasPrivateEndpointServiceLink(),
-			"mongodbatlas_private_endpoint":                      resourceMongoDBAtlasPrivateEndpoint(),
-			"mongodbatlas_private_endpoint_interface_link":       resourceMongoDBAtlasPrivateEndpointInterfaceLink(),
 			"mongodbatlas_cloud_provider_snapshot_backup_policy": resourceMongoDBAtlasCloudProviderSnapshotBackupPolicy(),
 			"mongodbatlas_third_party_integration":               resourceMongoDBAtlasThirdPartyIntegration(),
 			"mongodbatlas_project_ip_access_list":                resourceMongoDBAtlasProjectIPAccessList(),
 			"mongodbatlas_cloud_provider_access":                 resourceMongoDBAtlasCloudProviderAccess(),
+			"mongodbatlas_online_archive":                        resourceMongoDBAtlasOnlineArchive(),
 			"mongodbatlas_custom_dns_configuration_cluster_aws":  resourceMongoDBAtlasCustomDNSConfiguration(),
 			"mongodbatlas_ldap_configuration":                    resourceMongoDBAtlasLDAPConfiguration(),
 			"mongodbatlas_ldap_verify":                           resourceMongoDBAtlasLDAPVerify(),
 			"mongodbatlas_cloud_provider_access_setup":           resourceMongoDBAtlasCloudProviderAccessSetup(),
 			"mongodbatlas_cloud_provider_access_authorization":   resourceMongoDBAtlasCloudProviderAccessAuthorization(),
+			"mongodbatlas_search_index":                          resourceMongoDBAtlasSearchIndex(),
+			"mongodbatlas_data_lake":                             resourceMongoDBAtlasDataLake(),
+			"mongodbatlas_event_trigger":                         resourceMongoDBAtlasEventTriggers(),
 		},
 
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	config := Config{
 		PublicKey:  d.Get("public_key").(string),
 		PrivateKey: d.Get("private_key").(string),
 	}
 
-	return config.NewClient(), nil
+	if baseURL := d.Get("base_url"); baseURL != nil {
+		config.BaseURL = baseURL.(string)
+	}
+
+	return config.NewClient(ctx)
 }
 
 func encodeStateID(values map[string]string) string {
@@ -243,4 +262,52 @@ func expandStringList(list []interface{}) (res []string) {
 	}
 
 	return
+}
+
+func getEncodedID(stateID, keyPosition string) string {
+	id := ""
+	if !hasMultipleValues(stateID) {
+		return stateID
+	}
+
+	decoded := decodeStateID(stateID)
+	id = decoded[keyPosition]
+
+	return id
+}
+
+func hasMultipleValues(value string) bool {
+	if strings.Contains(value, "-") && strings.Contains(value, ":") {
+		return true
+	}
+
+	return false
+}
+
+// HashCodeString hashes a string to a unique hashcode.
+//
+// crc32 returns a uint32, but for our use we need
+// and non negative integer. Here we cast to an integer
+// and invert it if the result is negative.
+func HashCodeString(s string) int {
+	v := int(crc32.ChecksumIEEE([]byte(s)))
+	if v >= 0 {
+		return v
+	}
+	if -v >= 0 {
+		return -v
+	}
+	// v == MinInt
+	return 0
+}
+
+// HashCodeStrings hashes a list of strings to a unique hashcode.
+func HashCodeStrings(hashStrings []string) string {
+	var buf bytes.Buffer
+
+	for _, s := range hashStrings {
+		buf.WriteString(fmt.Sprintf("%s-", s))
+	}
+
+	return fmt.Sprintf("%d", HashCodeString(buf.String()))
 }

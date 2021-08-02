@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	performanceAdvisorPath                     = "groups/%s/processes/%s/performanceAdvisor"
+	performanceAdvisorPath                     = "api/atlas/v1.0/groups/%s/processes/%s/performanceAdvisor"
 	performanceAdvisorNamespacesPath           = performanceAdvisorPath + "/namespaces"
 	performanceAdvisorSlowQueryLogsPath        = performanceAdvisorPath + "/slowQueryLogs"
 	performanceAdvisorSuggestedIndexesLogsPath = performanceAdvisorPath + "/suggestedIndexes"
@@ -37,7 +37,7 @@ type PerformanceAdvisorService interface {
 	GetSuggestedIndexes(context.Context, string, string, *SuggestedIndexOptions) (*SuggestedIndexes, *Response, error)
 }
 
-// PerformanceAdvisorServiceOp handles communication with the Performance Advisor related methods of the MongoDB Atlas API
+// PerformanceAdvisorServiceOp handles communication with the Performance Advisor related methods of the MongoDB Atlas API.
 type PerformanceAdvisorServiceOp service
 
 var _ PerformanceAdvisorService = &PerformanceAdvisorServiceOp{}

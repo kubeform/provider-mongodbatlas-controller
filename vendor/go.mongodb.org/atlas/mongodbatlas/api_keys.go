@@ -21,7 +21,7 @@ import (
 	"net/url"
 )
 
-const apiKeysPath = "orgs/%s/apiKeys"
+const apiKeysPath = "api/atlas/v1.0/orgs/%s/apiKeys"
 
 // APIKeysService is an interface for interfacing with the APIKeys
 // endpoints of the MongoDB Atlas API.
@@ -36,7 +36,7 @@ type APIKeysService interface {
 }
 
 // APIKeysServiceOp handles communication with the APIKey related methods
-// of the MongoDB Atlas API
+// of the MongoDB Atlas API.
 type APIKeysServiceOp service
 
 var _ APIKeysService = &APIKeysServiceOp{}
@@ -56,7 +56,7 @@ type APIKey struct {
 	PublicKey  string      `json:"publicKey,omitempty"`
 }
 
-// AtlasRole represents a role name of API key
+// AtlasRole represents a role name of API key.
 type AtlasRole struct {
 	GroupID  string `json:"groupId,omitempty"`
 	OrgID    string `json:"orgId,omitempty"`
