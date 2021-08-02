@@ -87,6 +87,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+var _provider = mongodbatlas.Provider()
+
 var runningControllers = struct {
 	sync.RWMutex
 	mp map[schema.GroupVersionKind]bool
@@ -276,8 +278,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Configuration"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_alert_configuration"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_alert_configuration"],
 			TypeName:         "mongodbatlas_alert_configuration",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -294,8 +296,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Auditing"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_auditing"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_auditing"],
 			TypeName:         "mongodbatlas_auditing",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -312,8 +314,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ProviderAccess"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_access"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cloud_provider_access"],
 			TypeName:         "mongodbatlas_cloud_provider_access",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -330,8 +332,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ProviderAccessAuthorization"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_access_authorization"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cloud_provider_access_authorization"],
 			TypeName:         "mongodbatlas_cloud_provider_access_authorization",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -348,8 +350,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ProviderAccessSetup"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_access_setup"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cloud_provider_access_setup"],
 			TypeName:         "mongodbatlas_cloud_provider_access_setup",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -366,8 +368,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ProviderSnapshot"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_snapshot"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cloud_provider_snapshot"],
 			TypeName:         "mongodbatlas_cloud_provider_snapshot",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -384,8 +386,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ProviderSnapshotBackupPolicy"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_snapshot_backup_policy"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cloud_provider_snapshot_backup_policy"],
 			TypeName:         "mongodbatlas_cloud_provider_snapshot_backup_policy",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -402,8 +404,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ProviderSnapshotRestoreJob"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_snapshot_restore_job"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cloud_provider_snapshot_restore_job"],
 			TypeName:         "mongodbatlas_cloud_provider_snapshot_restore_job",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -420,8 +422,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Cluster"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cluster"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_cluster"],
 			TypeName:         "mongodbatlas_cluster",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -438,8 +440,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("DbRole"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_custom_db_role"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_custom_db_role"],
 			TypeName:         "mongodbatlas_custom_db_role",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -456,8 +458,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("DnsConfigurationClusterAws"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_custom_dns_configuration_cluster_aws"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_custom_dns_configuration_cluster_aws"],
 			TypeName:         "mongodbatlas_custom_dns_configuration_cluster_aws",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -474,8 +476,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Lake"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_data_lake"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_data_lake"],
 			TypeName:         "mongodbatlas_data_lake",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -492,8 +494,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("User"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_database_user"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_database_user"],
 			TypeName:         "mongodbatlas_database_user",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -510,8 +512,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("AtRest"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_encryption_at_rest"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_encryption_at_rest"],
 			TypeName:         "mongodbatlas_encryption_at_rest",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -528,8 +530,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Trigger"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_event_trigger"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_event_trigger"],
 			TypeName:         "mongodbatlas_event_trigger",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -546,8 +548,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("ClusterConfig"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_global_cluster_config"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_global_cluster_config"],
 			TypeName:         "mongodbatlas_global_cluster_config",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -564,8 +566,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Configuration"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_ldap_configuration"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_ldap_configuration"],
 			TypeName:         "mongodbatlas_ldap_configuration",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -582,8 +584,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Verify"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_ldap_verify"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_ldap_verify"],
 			TypeName:         "mongodbatlas_ldap_verify",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -600,8 +602,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Window"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_maintenance_window"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_maintenance_window"],
 			TypeName:         "mongodbatlas_maintenance_window",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -618,8 +620,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Container"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_network_container"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_network_container"],
 			TypeName:         "mongodbatlas_network_container",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -636,8 +638,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Peering"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_network_peering"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_network_peering"],
 			TypeName:         "mongodbatlas_network_peering",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -654,8 +656,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Archive"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_online_archive"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_online_archive"],
 			TypeName:         "mongodbatlas_online_archive",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -672,8 +674,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("IpMode"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_private_ip_mode"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_private_ip_mode"],
 			TypeName:         "mongodbatlas_private_ip_mode",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -690,8 +692,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Endpoint"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_privatelink_endpoint"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_privatelink_endpoint"],
 			TypeName:         "mongodbatlas_privatelink_endpoint",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -708,8 +710,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("EndpointService"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_privatelink_endpoint_service"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_privatelink_endpoint_service"],
 			TypeName:         "mongodbatlas_privatelink_endpoint_service",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -726,8 +728,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Project"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_project"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_project"],
 			TypeName:         "mongodbatlas_project",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -744,8 +746,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("IpAccessList"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_project_ip_access_list"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_project_ip_access_list"],
 			TypeName:         "mongodbatlas_project_ip_access_list",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -762,8 +764,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Index"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_search_index"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_search_index"],
 			TypeName:         "mongodbatlas_search_index",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -780,8 +782,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Team"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_team"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_team"],
 			TypeName:         "mongodbatlas_team",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -798,8 +800,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("Teams"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_teams"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_teams"],
 			TypeName:         "mongodbatlas_teams",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -816,8 +818,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("PartyIntegration"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_third_party_integration"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_third_party_integration"],
 			TypeName:         "mongodbatlas_third_party_integration",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
@@ -834,8 +836,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Log:              ctrl.Log.WithName("controllers").WithName("AuthenticationDatabaseUser"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_x509_authentication_database_user"],
+			Provider:         _provider,
+			Resource:         _provider.ResourcesMap["mongodbatlas_x509_authentication_database_user"],
 			TypeName:         "mongodbatlas_x509_authentication_database_user",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
