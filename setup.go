@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
-	mongodbatlas "github.com/equinix/terraform-provider-metal/metal"
 	"github.com/gobuffalo/flect"
+	mongodbatlas "github.com/mongodb/terraform-provider-mongodbatlas/mongodbatlas"
 	auditlib "go.bytebuilders.dev/audit/lib"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -39,36 +39,50 @@ import (
 	admissionregistrationv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	bgpv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/bgp/v1alpha1"
-	connectionv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/connection/v1alpha1"
-	devicev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/device/v1alpha1"
-	gatewayv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/gateway/v1alpha1"
-	ipv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/ip/v1alpha1"
-	organizationv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/organization/v1alpha1"
-	portv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/port/v1alpha1"
+	alertv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/alert/v1alpha1"
+	auditingv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/auditing/v1alpha1"
+	cloudv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/cloud/v1alpha1"
+	clusterv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/cluster/v1alpha1"
+	customv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/custom/v1alpha1"
+	datav1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/data/v1alpha1"
+	databasev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/database/v1alpha1"
+	encryptionv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/encryption/v1alpha1"
+	eventv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/event/v1alpha1"
+	globalv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/global/v1alpha1"
+	ldapv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/ldap/v1alpha1"
+	maintenancev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/maintenance/v1alpha1"
+	networkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/network/v1alpha1"
+	onlinev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/online/v1alpha1"
+	privatev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/private/v1alpha1"
+	privatelinkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/privatelink/v1alpha1"
 	projectv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/project/v1alpha1"
-	reservedv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/reserved/v1alpha1"
-	spotv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/spot/v1alpha1"
-	sshv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/ssh/v1alpha1"
-	userv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/user/v1alpha1"
-	virtualv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/virtual/v1alpha1"
-	vlanv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/vlan/v1alpha1"
-	volumev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/volume/v1alpha1"
-	controllersbgp "kubeform.dev/provider-mongodbatlas-controller/controllers/bgp"
-	controllersconnection "kubeform.dev/provider-mongodbatlas-controller/controllers/connection"
-	controllersdevice "kubeform.dev/provider-mongodbatlas-controller/controllers/device"
-	controllersgateway "kubeform.dev/provider-mongodbatlas-controller/controllers/gateway"
-	controllersip "kubeform.dev/provider-mongodbatlas-controller/controllers/ip"
-	controllersorganization "kubeform.dev/provider-mongodbatlas-controller/controllers/organization"
-	controllersport "kubeform.dev/provider-mongodbatlas-controller/controllers/port"
+	searchv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/search/v1alpha1"
+	teamv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/team/v1alpha1"
+	teamsv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/teams/v1alpha1"
+	thirdv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/third/v1alpha1"
+	x509v1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/x509/v1alpha1"
+	controllersalert "kubeform.dev/provider-mongodbatlas-controller/controllers/alert"
+	controllersauditing "kubeform.dev/provider-mongodbatlas-controller/controllers/auditing"
+	controllerscloud "kubeform.dev/provider-mongodbatlas-controller/controllers/cloud"
+	controllerscluster "kubeform.dev/provider-mongodbatlas-controller/controllers/cluster"
+	controllerscustom "kubeform.dev/provider-mongodbatlas-controller/controllers/custom"
+	controllersdata "kubeform.dev/provider-mongodbatlas-controller/controllers/data"
+	controllersdatabase "kubeform.dev/provider-mongodbatlas-controller/controllers/database"
+	controllersencryption "kubeform.dev/provider-mongodbatlas-controller/controllers/encryption"
+	controllersevent "kubeform.dev/provider-mongodbatlas-controller/controllers/event"
+	controllersglobal "kubeform.dev/provider-mongodbatlas-controller/controllers/global"
+	controllersldap "kubeform.dev/provider-mongodbatlas-controller/controllers/ldap"
+	controllersmaintenance "kubeform.dev/provider-mongodbatlas-controller/controllers/maintenance"
+	controllersnetwork "kubeform.dev/provider-mongodbatlas-controller/controllers/network"
+	controllersonline "kubeform.dev/provider-mongodbatlas-controller/controllers/online"
+	controllersprivate "kubeform.dev/provider-mongodbatlas-controller/controllers/private"
+	controllersprivatelink "kubeform.dev/provider-mongodbatlas-controller/controllers/privatelink"
 	controllersproject "kubeform.dev/provider-mongodbatlas-controller/controllers/project"
-	controllersreserved "kubeform.dev/provider-mongodbatlas-controller/controllers/reserved"
-	controllersspot "kubeform.dev/provider-mongodbatlas-controller/controllers/spot"
-	controllersssh "kubeform.dev/provider-mongodbatlas-controller/controllers/ssh"
-	controllersuser "kubeform.dev/provider-mongodbatlas-controller/controllers/user"
-	controllersvirtual "kubeform.dev/provider-mongodbatlas-controller/controllers/virtual"
-	controllersvlan "kubeform.dev/provider-mongodbatlas-controller/controllers/vlan"
-	controllersvolume "kubeform.dev/provider-mongodbatlas-controller/controllers/volume"
+	controllerssearch "kubeform.dev/provider-mongodbatlas-controller/controllers/search"
+	controllersteam "kubeform.dev/provider-mongodbatlas-controller/controllers/team"
+	controllersteams "kubeform.dev/provider-mongodbatlas-controller/controllers/teams"
+	controllersthird "kubeform.dev/provider-mongodbatlas-controller/controllers/third"
+	controllersx509 "kubeform.dev/provider-mongodbatlas-controller/controllers/x509"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -253,147 +267,453 @@ func updateVWC(vwcClient *admissionregistrationv1.AdmissionregistrationV1Client,
 func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVersionKind, auditor *auditlib.EventPublisher, watchOnlyDefault bool) error {
 	switch gvk {
 	case schema.GroupVersionKind{
-		Group:   "bgp.mongodbatlas.kubeform.com",
+		Group:   "alert.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Session",
+		Kind:    "Configuration",
 	}:
-		if err := (&controllersbgp.SessionReconciler{
+		if err := (&controllersalert.ConfigurationReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Session"),
+			Log:              ctrl.Log.WithName("controllers").WithName("Configuration"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_bgp_session"],
-			TypeName:         "metal_bgp_session",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_alert_configuration"],
+			TypeName:         "mongodbatlas_alert_configuration",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Session")
+			setupLog.Error(err, "unable to create controller", "controller", "Configuration")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "connection.mongodbatlas.kubeform.com",
+		Group:   "auditing.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Connection",
+		Kind:    "Auditing",
 	}:
-		if err := (&controllersconnection.ConnectionReconciler{
+		if err := (&controllersauditing.AuditingReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Connection"),
+			Log:              ctrl.Log.WithName("controllers").WithName("Auditing"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_connection"],
-			TypeName:         "metal_connection",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_auditing"],
+			TypeName:         "mongodbatlas_auditing",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Connection")
+			setupLog.Error(err, "unable to create controller", "controller", "Auditing")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "device.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Device",
+		Kind:    "ProviderAccess",
 	}:
-		if err := (&controllersdevice.DeviceReconciler{
+		if err := (&controllerscloud.ProviderAccessReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Device"),
+			Log:              ctrl.Log.WithName("controllers").WithName("ProviderAccess"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_device"],
-			TypeName:         "metal_device",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_access"],
+			TypeName:         "mongodbatlas_cloud_provider_access",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Device")
+			setupLog.Error(err, "unable to create controller", "controller", "ProviderAccess")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "device.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "NetworkType",
+		Kind:    "ProviderAccessAuthorization",
 	}:
-		if err := (&controllersdevice.NetworkTypeReconciler{
+		if err := (&controllerscloud.ProviderAccessAuthorizationReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("NetworkType"),
+			Log:              ctrl.Log.WithName("controllers").WithName("ProviderAccessAuthorization"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_device_network_type"],
-			TypeName:         "metal_device_network_type",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_access_authorization"],
+			TypeName:         "mongodbatlas_cloud_provider_access_authorization",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "NetworkType")
+			setupLog.Error(err, "unable to create controller", "controller", "ProviderAccessAuthorization")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "gateway.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Gateway",
+		Kind:    "ProviderAccessSetup",
 	}:
-		if err := (&controllersgateway.GatewayReconciler{
+		if err := (&controllerscloud.ProviderAccessSetupReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Gateway"),
+			Log:              ctrl.Log.WithName("controllers").WithName("ProviderAccessSetup"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_gateway"],
-			TypeName:         "metal_gateway",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_access_setup"],
+			TypeName:         "mongodbatlas_cloud_provider_access_setup",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Gateway")
+			setupLog.Error(err, "unable to create controller", "controller", "ProviderAccessSetup")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "ip.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Attachment",
+		Kind:    "ProviderSnapshot",
 	}:
-		if err := (&controllersip.AttachmentReconciler{
+		if err := (&controllerscloud.ProviderSnapshotReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Attachment"),
+			Log:              ctrl.Log.WithName("controllers").WithName("ProviderSnapshot"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_ip_attachment"],
-			TypeName:         "metal_ip_attachment",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_snapshot"],
+			TypeName:         "mongodbatlas_cloud_provider_snapshot",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Attachment")
+			setupLog.Error(err, "unable to create controller", "controller", "ProviderSnapshot")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "organization.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Organization",
+		Kind:    "ProviderSnapshotBackupPolicy",
 	}:
-		if err := (&controllersorganization.OrganizationReconciler{
+		if err := (&controllerscloud.ProviderSnapshotBackupPolicyReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Organization"),
+			Log:              ctrl.Log.WithName("controllers").WithName("ProviderSnapshotBackupPolicy"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_organization"],
-			TypeName:         "metal_organization",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_snapshot_backup_policy"],
+			TypeName:         "mongodbatlas_cloud_provider_snapshot_backup_policy",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Organization")
+			setupLog.Error(err, "unable to create controller", "controller", "ProviderSnapshotBackupPolicy")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "port.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "VlanAttachment",
+		Kind:    "ProviderSnapshotRestoreJob",
 	}:
-		if err := (&controllersport.VlanAttachmentReconciler{
+		if err := (&controllerscloud.ProviderSnapshotRestoreJobReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("VlanAttachment"),
+			Log:              ctrl.Log.WithName("controllers").WithName("ProviderSnapshotRestoreJob"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_port_vlan_attachment"],
-			TypeName:         "metal_port_vlan_attachment",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cloud_provider_snapshot_restore_job"],
+			TypeName:         "mongodbatlas_cloud_provider_snapshot_restore_job",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "VlanAttachment")
+			setupLog.Error(err, "unable to create controller", "controller", "ProviderSnapshotRestoreJob")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cluster.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Cluster",
+	}:
+		if err := (&controllerscluster.ClusterReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Cluster"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_cluster"],
+			TypeName:         "mongodbatlas_cluster",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "custom.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "DbRole",
+	}:
+		if err := (&controllerscustom.DbRoleReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("DbRole"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_custom_db_role"],
+			TypeName:         "mongodbatlas_custom_db_role",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "DbRole")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "custom.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "DnsConfigurationClusterAws",
+	}:
+		if err := (&controllerscustom.DnsConfigurationClusterAwsReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("DnsConfigurationClusterAws"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_custom_dns_configuration_cluster_aws"],
+			TypeName:         "mongodbatlas_custom_dns_configuration_cluster_aws",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "DnsConfigurationClusterAws")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "data.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Lake",
+	}:
+		if err := (&controllersdata.LakeReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Lake"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_data_lake"],
+			TypeName:         "mongodbatlas_data_lake",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Lake")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "database.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "User",
+	}:
+		if err := (&controllersdatabase.UserReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("User"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_database_user"],
+			TypeName:         "mongodbatlas_database_user",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "User")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "encryption.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "AtRest",
+	}:
+		if err := (&controllersencryption.AtRestReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("AtRest"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_encryption_at_rest"],
+			TypeName:         "mongodbatlas_encryption_at_rest",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "AtRest")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "event.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Trigger",
+	}:
+		if err := (&controllersevent.TriggerReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Trigger"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_event_trigger"],
+			TypeName:         "mongodbatlas_event_trigger",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Trigger")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "global.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "ClusterConfig",
+	}:
+		if err := (&controllersglobal.ClusterConfigReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("ClusterConfig"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_global_cluster_config"],
+			TypeName:         "mongodbatlas_global_cluster_config",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterConfig")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "ldap.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Configuration",
+	}:
+		if err := (&controllersldap.ConfigurationReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Configuration"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_ldap_configuration"],
+			TypeName:         "mongodbatlas_ldap_configuration",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Configuration")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "ldap.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Verify",
+	}:
+		if err := (&controllersldap.VerifyReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Verify"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_ldap_verify"],
+			TypeName:         "mongodbatlas_ldap_verify",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Verify")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "maintenance.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Window",
+	}:
+		if err := (&controllersmaintenance.WindowReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Window"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_maintenance_window"],
+			TypeName:         "mongodbatlas_maintenance_window",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Window")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "network.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Container",
+	}:
+		if err := (&controllersnetwork.ContainerReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Container"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_network_container"],
+			TypeName:         "mongodbatlas_network_container",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Container")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "network.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Peering",
+	}:
+		if err := (&controllersnetwork.PeeringReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Peering"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_network_peering"],
+			TypeName:         "mongodbatlas_network_peering",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Peering")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "online.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Archive",
+	}:
+		if err := (&controllersonline.ArchiveReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Archive"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_online_archive"],
+			TypeName:         "mongodbatlas_online_archive",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Archive")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "private.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "IpMode",
+	}:
+		if err := (&controllersprivate.IpModeReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("IpMode"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_private_ip_mode"],
+			TypeName:         "mongodbatlas_private_ip_mode",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "IpMode")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "privatelink.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Endpoint",
+	}:
+		if err := (&controllersprivatelink.EndpointReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Endpoint"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_privatelink_endpoint"],
+			TypeName:         "mongodbatlas_privatelink_endpoint",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Endpoint")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "privatelink.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "EndpointService",
+	}:
+		if err := (&controllersprivatelink.EndpointServiceReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("EndpointService"),
+			Scheme:           mgr.GetScheme(),
+			Gvk:              gvk,
+			Provider:         mongodbatlas.Provider(),
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_privatelink_endpoint_service"],
+			TypeName:         "mongodbatlas_privatelink_endpoint_service",
+			WatchOnlyDefault: watchOnlyDefault,
+		}).SetupWithManager(ctx, mgr, auditor); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "EndpointService")
 			return err
 		}
 	case schema.GroupVersionKind{
@@ -407,8 +727,8 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_project"],
-			TypeName:         "metal_project",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_project"],
+			TypeName:         "mongodbatlas_project",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Project")
@@ -417,181 +737,109 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 	case schema.GroupVersionKind{
 		Group:   "project.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "ApiKey",
+		Kind:    "IpAccessList",
 	}:
-		if err := (&controllersproject.ApiKeyReconciler{
+		if err := (&controllersproject.IpAccessListReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("ApiKey"),
+			Log:              ctrl.Log.WithName("controllers").WithName("IpAccessList"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_project_api_key"],
-			TypeName:         "metal_project_api_key",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_project_ip_access_list"],
+			TypeName:         "mongodbatlas_project_ip_access_list",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ApiKey")
+			setupLog.Error(err, "unable to create controller", "controller", "IpAccessList")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "project.mongodbatlas.kubeform.com",
+		Group:   "search.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "SshKey",
+		Kind:    "Index",
 	}:
-		if err := (&controllersproject.SshKeyReconciler{
+		if err := (&controllerssearch.IndexReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("SshKey"),
+			Log:              ctrl.Log.WithName("controllers").WithName("Index"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_project_ssh_key"],
-			TypeName:         "metal_project_ssh_key",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_search_index"],
+			TypeName:         "mongodbatlas_search_index",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "SshKey")
+			setupLog.Error(err, "unable to create controller", "controller", "Index")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "reserved.mongodbatlas.kubeform.com",
+		Group:   "team.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "IpBlock",
+		Kind:    "Team",
 	}:
-		if err := (&controllersreserved.IpBlockReconciler{
+		if err := (&controllersteam.TeamReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("IpBlock"),
+			Log:              ctrl.Log.WithName("controllers").WithName("Team"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_reserved_ip_block"],
-			TypeName:         "metal_reserved_ip_block",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_team"],
+			TypeName:         "mongodbatlas_team",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "IpBlock")
+			setupLog.Error(err, "unable to create controller", "controller", "Team")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "spot.mongodbatlas.kubeform.com",
+		Group:   "teams.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "MarketRequest",
+		Kind:    "Teams",
 	}:
-		if err := (&controllersspot.MarketRequestReconciler{
+		if err := (&controllersteams.TeamsReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("MarketRequest"),
+			Log:              ctrl.Log.WithName("controllers").WithName("Teams"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_spot_market_request"],
-			TypeName:         "metal_spot_market_request",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_teams"],
+			TypeName:         "mongodbatlas_teams",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MarketRequest")
+			setupLog.Error(err, "unable to create controller", "controller", "Teams")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "ssh.mongodbatlas.kubeform.com",
+		Group:   "third.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Key",
+		Kind:    "PartyIntegration",
 	}:
-		if err := (&controllersssh.KeyReconciler{
+		if err := (&controllersthird.PartyIntegrationReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Key"),
+			Log:              ctrl.Log.WithName("controllers").WithName("PartyIntegration"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_ssh_key"],
-			TypeName:         "metal_ssh_key",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_third_party_integration"],
+			TypeName:         "mongodbatlas_third_party_integration",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Key")
+			setupLog.Error(err, "unable to create controller", "controller", "PartyIntegration")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "user.mongodbatlas.kubeform.com",
+		Group:   "x509.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "ApiKey",
+		Kind:    "AuthenticationDatabaseUser",
 	}:
-		if err := (&controllersuser.ApiKeyReconciler{
+		if err := (&controllersx509.AuthenticationDatabaseUserReconciler{
 			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("ApiKey"),
+			Log:              ctrl.Log.WithName("controllers").WithName("AuthenticationDatabaseUser"),
 			Scheme:           mgr.GetScheme(),
 			Gvk:              gvk,
 			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_user_api_key"],
-			TypeName:         "metal_user_api_key",
+			Resource:         mongodbatlas.Provider().ResourcesMap["mongodbatlas_x509_authentication_database_user"],
+			TypeName:         "mongodbatlas_x509_authentication_database_user",
 			WatchOnlyDefault: watchOnlyDefault,
 		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ApiKey")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "virtual.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Circuit",
-	}:
-		if err := (&controllersvirtual.CircuitReconciler{
-			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Circuit"),
-			Scheme:           mgr.GetScheme(),
-			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_virtual_circuit"],
-			TypeName:         "metal_virtual_circuit",
-			WatchOnlyDefault: watchOnlyDefault,
-		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Circuit")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "vlan.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Vlan",
-	}:
-		if err := (&controllersvlan.VlanReconciler{
-			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Vlan"),
-			Scheme:           mgr.GetScheme(),
-			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_vlan"],
-			TypeName:         "metal_vlan",
-			WatchOnlyDefault: watchOnlyDefault,
-		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Vlan")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "volume.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Volume",
-	}:
-		if err := (&controllersvolume.VolumeReconciler{
-			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Volume"),
-			Scheme:           mgr.GetScheme(),
-			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_volume"],
-			TypeName:         "metal_volume",
-			WatchOnlyDefault: watchOnlyDefault,
-		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Volume")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "volume.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Attachment",
-	}:
-		if err := (&controllersvolume.AttachmentReconciler{
-			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Attachment"),
-			Scheme:           mgr.GetScheme(),
-			Gvk:              gvk,
-			Provider:         mongodbatlas.Provider(),
-			Resource:         mongodbatlas.Provider().ResourcesMap["metal_volume_attachment"],
-			TypeName:         "metal_volume_attachment",
-			WatchOnlyDefault: watchOnlyDefault,
-		}).SetupWithManager(ctx, mgr, auditor); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Attachment")
+			setupLog.Error(err, "unable to create controller", "controller", "AuthenticationDatabaseUser")
 			return err
 		}
 
@@ -605,75 +853,228 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 	switch gvk {
 	case schema.GroupVersionKind{
-		Group:   "bgp.mongodbatlas.kubeform.com",
+		Group:   "alert.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Session",
+		Kind:    "Configuration",
 	}:
-		if err := (&bgpv1alpha1.Session{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Session")
+		if err := (&alertv1alpha1.Configuration{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Configuration")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "connection.mongodbatlas.kubeform.com",
+		Group:   "auditing.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Connection",
+		Kind:    "Auditing",
 	}:
-		if err := (&connectionv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
+		if err := (&auditingv1alpha1.Auditing{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Auditing")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "device.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Device",
+		Kind:    "ProviderAccess",
 	}:
-		if err := (&devicev1alpha1.Device{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Device")
+		if err := (&cloudv1alpha1.ProviderAccess{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ProviderAccess")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "device.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "NetworkType",
+		Kind:    "ProviderAccessAuthorization",
 	}:
-		if err := (&devicev1alpha1.NetworkType{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "NetworkType")
+		if err := (&cloudv1alpha1.ProviderAccessAuthorization{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ProviderAccessAuthorization")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "gateway.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Gateway",
+		Kind:    "ProviderAccessSetup",
 	}:
-		if err := (&gatewayv1alpha1.Gateway{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Gateway")
+		if err := (&cloudv1alpha1.ProviderAccessSetup{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ProviderAccessSetup")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "ip.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Attachment",
+		Kind:    "ProviderSnapshot",
 	}:
-		if err := (&ipv1alpha1.Attachment{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Attachment")
+		if err := (&cloudv1alpha1.ProviderSnapshot{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ProviderSnapshot")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "organization.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Organization",
+		Kind:    "ProviderSnapshotBackupPolicy",
 	}:
-		if err := (&organizationv1alpha1.Organization{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Organization")
+		if err := (&cloudv1alpha1.ProviderSnapshotBackupPolicy{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ProviderSnapshotBackupPolicy")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "port.mongodbatlas.kubeform.com",
+		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "VlanAttachment",
+		Kind:    "ProviderSnapshotRestoreJob",
 	}:
-		if err := (&portv1alpha1.VlanAttachment{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "VlanAttachment")
+		if err := (&cloudv1alpha1.ProviderSnapshotRestoreJob{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ProviderSnapshotRestoreJob")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cluster.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Cluster",
+	}:
+		if err := (&clusterv1alpha1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "custom.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "DbRole",
+	}:
+		if err := (&customv1alpha1.DbRole{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "DbRole")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "custom.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "DnsConfigurationClusterAws",
+	}:
+		if err := (&customv1alpha1.DnsConfigurationClusterAws{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "DnsConfigurationClusterAws")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "data.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Lake",
+	}:
+		if err := (&datav1alpha1.Lake{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Lake")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "database.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "User",
+	}:
+		if err := (&databasev1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "User")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "encryption.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "AtRest",
+	}:
+		if err := (&encryptionv1alpha1.AtRest{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AtRest")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "event.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Trigger",
+	}:
+		if err := (&eventv1alpha1.Trigger{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Trigger")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "global.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "ClusterConfig",
+	}:
+		if err := (&globalv1alpha1.ClusterConfig{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterConfig")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "ldap.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Configuration",
+	}:
+		if err := (&ldapv1alpha1.Configuration{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Configuration")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "ldap.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Verify",
+	}:
+		if err := (&ldapv1alpha1.Verify{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Verify")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "maintenance.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Window",
+	}:
+		if err := (&maintenancev1alpha1.Window{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Window")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "network.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Container",
+	}:
+		if err := (&networkv1alpha1.Container{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Container")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "network.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Peering",
+	}:
+		if err := (&networkv1alpha1.Peering{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Peering")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "online.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Archive",
+	}:
+		if err := (&onlinev1alpha1.Archive{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Archive")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "private.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "IpMode",
+	}:
+		if err := (&privatev1alpha1.IpMode{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "IpMode")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "privatelink.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Endpoint",
+	}:
+		if err := (&privatelinkv1alpha1.Endpoint{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Endpoint")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "privatelink.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "EndpointService",
+	}:
+		if err := (&privatelinkv1alpha1.EndpointService{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "EndpointService")
 			return err
 		}
 	case schema.GroupVersionKind{
@@ -688,91 +1089,55 @@ func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 	case schema.GroupVersionKind{
 		Group:   "project.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "ApiKey",
+		Kind:    "IpAccessList",
 	}:
-		if err := (&projectv1alpha1.ApiKey{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ApiKey")
+		if err := (&projectv1alpha1.IpAccessList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "IpAccessList")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "project.mongodbatlas.kubeform.com",
+		Group:   "search.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "SshKey",
+		Kind:    "Index",
 	}:
-		if err := (&projectv1alpha1.SshKey{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "SshKey")
+		if err := (&searchv1alpha1.Index{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Index")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "reserved.mongodbatlas.kubeform.com",
+		Group:   "team.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "IpBlock",
+		Kind:    "Team",
 	}:
-		if err := (&reservedv1alpha1.IpBlock{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "IpBlock")
+		if err := (&teamv1alpha1.Team{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Team")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "spot.mongodbatlas.kubeform.com",
+		Group:   "teams.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "MarketRequest",
+		Kind:    "Teams",
 	}:
-		if err := (&spotv1alpha1.MarketRequest{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MarketRequest")
+		if err := (&teamsv1alpha1.Teams{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Teams")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "ssh.mongodbatlas.kubeform.com",
+		Group:   "third.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "Key",
+		Kind:    "PartyIntegration",
 	}:
-		if err := (&sshv1alpha1.Key{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Key")
+		if err := (&thirdv1alpha1.PartyIntegration{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "PartyIntegration")
 			return err
 		}
 	case schema.GroupVersionKind{
-		Group:   "user.mongodbatlas.kubeform.com",
+		Group:   "x509.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
-		Kind:    "ApiKey",
+		Kind:    "AuthenticationDatabaseUser",
 	}:
-		if err := (&userv1alpha1.ApiKey{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ApiKey")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "virtual.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Circuit",
-	}:
-		if err := (&virtualv1alpha1.Circuit{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Circuit")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "vlan.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Vlan",
-	}:
-		if err := (&vlanv1alpha1.Vlan{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Vlan")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "volume.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Volume",
-	}:
-		if err := (&volumev1alpha1.Volume{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Volume")
-			return err
-		}
-	case schema.GroupVersionKind{
-		Group:   "volume.mongodbatlas.kubeform.com",
-		Version: "v1alpha1",
-		Kind:    "Attachment",
-	}:
-		if err := (&volumev1alpha1.Attachment{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Attachment")
+		if err := (&x509v1alpha1.AuthenticationDatabaseUser{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AuthenticationDatabaseUser")
 			return err
 		}
 
