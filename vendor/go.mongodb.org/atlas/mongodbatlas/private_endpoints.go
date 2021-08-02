@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	privateEndpointsPath = "groups/%s/privateEndpoint"
+	privateEndpointsPath = "api/atlas/v1.0/groups/%s/privateEndpoint"
 	regionalModePath     = privateEndpointsPath + "/regionalMode"
 )
 
@@ -43,7 +43,7 @@ type PrivateEndpointsService interface {
 }
 
 // PrivateEndpointsServiceOp handles communication with the PrivateEndpoints related methods
-// of the MongoDB Atlas API
+// of the MongoDB Atlas API.
 type PrivateEndpointsServiceOp service
 
 var _ PrivateEndpointsService = &PrivateEndpointsServiceOp{}

@@ -24,10 +24,12 @@ import (
 type ChangeStatus string
 
 const (
-	ChangeStatusApplied          ChangeStatus = "APPLIED"
+	// ChangeStatusApplied signals when changes to the deployments have completed.
+	ChangeStatusApplied ChangeStatus = "APPLIED"
+	// ChangeStatusPending signals when changes to the deployments are still pending.
 	ChangeStatusPending          ChangeStatus = "PENDING"
-	clustersPath                              = "groups/%s/clusters"
-	sampleDatasetLoadPath                     = "groups/%s/sampleDatasetLoad"
+	clustersPath                              = "api/atlas/v1.0/groups/%s/clusters"
+	sampleDatasetLoadPath                     = "api/atlas/v1.0/groups/%s/sampleDatasetLoad"
 	cloudProviderRegionsBasePath              = clustersPath + "/provider/regions"
 )
 
@@ -50,12 +52,12 @@ type ClustersService interface {
 }
 
 // ClustersServiceOp handles communication with the Cluster related methods
-// of the MongoDB Atlas API
+// of the MongoDB Atlas API.
 type ClustersServiceOp service
 
 var _ ClustersService = &ClustersServiceOp{}
 
-// AutoScaling configures your cluster to automatically scale its storage
+// AutoScaling configures your cluster to automatically scale its storage.
 type AutoScaling struct {
 	AutoIndexingEnabled *bool    `json:"autoIndexingEnabled,omitempty"` // Autopilot mode is only available if you are enrolled in the Auto Pilot Early Access program.
 	Compute             *Compute `json:"compute,omitempty"`
@@ -70,7 +72,7 @@ type Compute struct {
 	MaxInstanceSize  string `json:"maxInstanceSize,omitempty"`
 }
 
-// BiConnector specifies BI Connector for Atlas configuration on this cluster
+// BiConnector specifies BI Connector for Atlas configuration on this cluster.
 type BiConnector struct {
 	Enabled        *bool  `json:"enabled,omitempty"`
 	ReadPreference string `json:"readPreference,omitempty"`
@@ -97,7 +99,7 @@ type RegionsConfig struct {
 	ReadOnlyNodes  *int64 `json:"readOnlyNodes,omitempty"`
 }
 
-// ReplicationSpec represents a configuration for cluster regions
+// ReplicationSpec represents a configuration for cluster regions.
 type ReplicationSpec struct {
 	ID            string                   `json:"id,omitempty"`
 	NumShards     *int64                   `json:"numShards,omitempty"`
@@ -116,14 +118,14 @@ type PrivateEndpoint struct {
 	Type                string     `json:"type,omitempty"`
 }
 
-// Endpoint through which you connect to Atlas
+// Endpoint through which you connect to Atlas.
 type Endpoint struct {
 	EndpointID   string `json:"endpointId,omitempty"`
 	ProviderName string `json:"providerName,omitempty"`
 	Region       string `json:"region,omitempty"`
 }
 
-// ConnectionStrings configuration for applications use to connect to this cluster
+// ConnectionStrings configuration for applications use to connect to this cluster.
 type ConnectionStrings struct {
 	Standard          string            `json:"standard,omitempty"`
 	StandardSrv       string            `json:"standardSrv,omitempty"`
@@ -151,6 +153,7 @@ type Cluster struct {
 	MongoURIUpdated          string                   `json:"mongoURIUpdated,omitempty"`
 	MongoURIWithOptions      string                   `json:"mongoURIWithOptions,omitempty"`
 	Name                     string                   `json:"name,omitempty"`
+	CreateDate               string                   `json:"createDate,omitempty"`
 	NumShards                *int64                   `json:"numShards,omitempty"`
 	Paused                   *bool                    `json:"paused,omitempty"`
 	PitEnabled               *bool                    `json:"pitEnabled,omitempty"`
@@ -162,9 +165,10 @@ type Cluster struct {
 	SrvAddress               string                   `json:"srvAddress,omitempty"`
 	StateName                string                   `json:"stateName,omitempty"`
 	ConnectionStrings        *ConnectionStrings       `json:"connectionStrings,omitempty"`
+	Links                    []*Link                  `json:"links,omitempty"`
 }
 
-// ProcessArgs represents the advanced configuration options for the cluster
+// ProcessArgs represents the advanced configuration options for the cluster.
 type ProcessArgs struct {
 	FailIndexKeyTooLong              *bool  `json:"failIndexKeyTooLong,omitempty"`
 	JavascriptEnabled                *bool  `json:"javascriptEnabled,omitempty"`
@@ -175,7 +179,7 @@ type ProcessArgs struct {
 	SampleRefreshIntervalBIConnector *int64 `json:"sampleRefreshIntervalBIConnector,omitempty"`
 }
 
-// ClusterStatus is the status of the operations on the cluster
+// ClusterStatus is the status of the operations on the cluster.
 type ClusterStatus struct {
 	ChangeStatus ChangeStatus `json:"changeStatus"`
 }
@@ -187,7 +191,7 @@ type clustersResponse struct {
 	TotalCount int       `json:"totalCount,omitempty"`
 }
 
-// SampleDatasetJob represents a sample dataset job
+// SampleDatasetJob represents a sample dataset job.
 type SampleDatasetJob struct {
 	ClusterName  string `json:"clusterName"`
 	CompleteDate string `json:"completeDate,omitempty"`
@@ -197,25 +201,25 @@ type SampleDatasetJob struct {
 	State        string `json:"state"`
 }
 
-// CloudProvider represents a cloud provider of the MongoDB Atlas API
+// CloudProvider represents a cloud provider of the MongoDB Atlas API.
 type CloudProvider struct {
 	Provider      string          `json:"provider,omitempty"`
 	InstanceSizes []*InstanceSize `json:"instanceSizes,omitempty"`
 }
 
-// InstanceSize represents an instance size of the MongoDB Atlas API
+// InstanceSize represents an instance size of the MongoDB Atlas API.
 type InstanceSize struct {
 	Name             string             `json:"name,omitempty"`
 	AvailableRegions []*AvailableRegion `json:"availableRegions,omitempty"`
 }
 
-// AvailableRegion represents an available region of the MongoDB Atlas API
+// AvailableRegion represents an available region of the MongoDB Atlas API.
 type AvailableRegion struct {
 	Name    string `json:"name,omitempty"`
 	Default bool   `json:"default,omitempty"`
 }
 
-// CloudProviders represents the response from CloudProviderRegionsService.Get
+// CloudProviders represents the response from CloudProviderRegionsService.Get.
 type CloudProviders struct {
 	Links      []*Link          `json:"links,omitempty"`
 	Results    []*CloudProvider `json:"results,omitempty"`
@@ -229,7 +233,7 @@ type CloudProviderRegionsOptions struct {
 }
 
 // DefaultDiskSizeGB represents the Tier and the default disk size for each one
-// it can be use like: DefaultDiskSizeGB["AWS"]["M10"]
+// it can be use like: DefaultDiskSizeGB["AWS"]["M10"].
 var DefaultDiskSizeGB = map[string]map[string]float64{
 	"TENANT": {
 		"M2": 2,

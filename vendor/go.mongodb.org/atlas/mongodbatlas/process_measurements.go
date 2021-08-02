@@ -20,7 +20,7 @@ import (
 	"net/http"
 )
 
-const processMeasurementsPath = "groups/%s/processes/%s:%d/measurements"
+const processMeasurementsPath = "api/atlas/v1.0/groups/%s/processes/%s:%d/measurements"
 
 // ProcessMeasurementsService is an interface for interfacing with the Process Measurements
 // endpoints of the MongoDB Atlas API.
@@ -31,7 +31,7 @@ type ProcessMeasurementsService interface {
 }
 
 // ProcessMeasurementsServiceOp handles communication with the Process Measurements related methods of the
-// MongoDB Atlas API
+// MongoDB Atlas API.
 type ProcessMeasurementsServiceOp service
 
 var _ ProcessMeasurementsService = &ProcessMeasurementsServiceOp{}

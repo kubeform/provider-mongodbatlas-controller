@@ -34,53 +34,53 @@ import (
 )
 
 const (
-	CloudURL        = "https://cloud.mongodb.com/"
-	defaultBaseURL  = CloudURL + APIPublicV1Path
-	APIPublicV1Path = "api/atlas/v1.0/" // APIPublicV1Path specifies the v1 api path
-	jsonMediaType   = "application/json"
-	plainMediaType  = "text/plain"
-	gzipMediaType   = "application/gzip"
-	libraryName     = "go-mongodbatlas"
-	// Version the version of the current API client. Should be set to the next version planned to be released
-	Version = "0.8.0"
+	// CloudURL is default base URL for the services.
+	CloudURL       = "https://cloud.mongodb.com/"
+	defaultBaseURL = CloudURL
+	jsonMediaType  = "application/json"
+	plainMediaType = "text/plain"
+	gzipMediaType  = "application/gzip"
+	libraryName    = "go-mongodbatlas"
+	// Version the version of the current API client. Should be set to the next version planned to be released.
+	Version = "0.10.1"
 )
 
 var (
 	userAgent = fmt.Sprintf("%s/%s (%s;%s)", libraryName, Version, runtime.GOOS, runtime.GOARCH)
 )
 
-// Doer basic interface of a client to be able to do a request
+// Doer basic interface of a client to be able to do a request.
 type Doer interface {
 	Do(context.Context, *http.Request, interface{}) (*Response, error)
 }
 
-// Completer interface for clients with callback
+// Completer interface for clients with callback.
 type Completer interface {
 	OnRequestCompleted(RequestCompletionCallback)
 }
 
-// RequestDoer minimum interface for any service of the client
+// RequestDoer minimum interface for any service of the client.
 type RequestDoer interface {
 	Doer
 	Completer
 	NewRequest(context.Context, string, string, interface{}) (*http.Request, error)
 }
 
-// GZipRequestDoer minimum interface for any service of the client that should handle gzip downloads
+// GZipRequestDoer minimum interface for any service of the client that should handle gzip downloads.
 type GZipRequestDoer interface {
 	Doer
 	Completer
 	NewGZipRequest(context.Context, string, string) (*http.Request, error)
 }
 
-// PlainRequestDoer minimum interface for any service of the client that should handle plain text
+// PlainRequestDoer minimum interface for any service of the client that should handle plain text.
 type PlainRequestDoer interface {
 	Doer
 	Completer
 	NewPlainRequest(context.Context, string, string) (*http.Request, error)
 }
 
-// Client manages communication with MongoDBAtlas v1.0 API
+// Client manages communication with MongoDBAtlas v1.0 API.
 type Client struct {
 	client    *http.Client
 	BaseURL   *url.URL
@@ -89,7 +89,6 @@ type Client struct {
 	// Services used for communicating with the API
 	CustomDBRoles                       CustomDBRolesService
 	DatabaseUsers                       DatabaseUsersService
-	ProjectIPWhitelist                  ProjectIPWhitelistService
 	ProjectIPAccessList                 ProjectIPAccessListService
 	Organizations                       OrganizationsService
 	Projects                            ProjectsService
@@ -137,11 +136,13 @@ type Client struct {
 	CloudProviderAccess                 CloudProviderAccessService
 	DefaultMongoDBMajorVersion          DefaultMongoDBMajorVersionService
 	IPInfo                              IPInfoService
+	AdvancedClusters                    AdvancedClustersService
+	ServerlessInstances                 ServerlessInstancesService
 
 	onRequestCompleted RequestCompletionCallback
 }
 
-// RequestCompletionCallback defines the type of the request callback function
+// RequestCompletionCallback defines the type of the request callback function.
 type RequestCompletionCallback func(*http.Request, *http.Response)
 
 type service struct {
@@ -167,24 +168,9 @@ type ListOptions struct {
 
 	// For paginated result sets, the number of results to include per page.
 	ItemsPerPage int `url:"itemsPerPage,omitempty"`
-}
 
-// ErrorResponse reports the error caused by an API request.
-type ErrorResponse struct {
-	// HTTP response that caused this error
-	Response *http.Response
-
-	// The error code as specified in https://docs.atlas.mongodb.com/reference/api/api-errors/
-	ErrorCode string `json:"errorCode"`
-
-	// HTTP status code.
-	HTTPCode int `json:"error"`
-
-	// A short description of the error, which is simply the HTTP status phrase.
-	Reason string `json:"reason"`
-
-	// A more detailed description of the error.
-	Detail string `json:"detail,omitempty"`
+	// Flag that indicates whether Atlas returns the totalCount parameter in the response body.
+	IncludeCount bool `url:"includeCount,omitempty"`
 }
 
 func (resp *Response) getCurrentPageLink() (*Link, error) {
@@ -203,7 +189,7 @@ func (resp *Response) getLinkByRef(ref string) *Link {
 	return nil
 }
 
-// IsLastPage returns true if the current page is the last page
+// IsLastPage returns true if the current page is the last page.
 func (resp *Response) IsLastPage() bool {
 	return resp.getLinkByRef("next") == nil
 }
@@ -222,13 +208,13 @@ func (resp *Response) CurrentPage() (int, error) {
 
 	pageNum, err := strconv.Atoi(pageNumStr)
 	if err != nil {
-		return 0, fmt.Errorf("error getting current page: %s", err)
+		return 0, fmt.Errorf("error getting current page: %w", err)
 	}
 
 	return pageNum, nil
 }
 
-// NewClient returns a new MongoDBAtlas API Client
+// NewClient returns a new MongoDBAtlas API Client.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
@@ -251,7 +237,6 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Projects = &ProjectsServiceOp{Client: c}
 	c.ProjectAPIKeys = &ProjectAPIKeysOp{Client: c}
 	c.Peers = &PeersServiceOp{Client: c}
-	c.ProjectIPWhitelist = &ProjectIPWhitelistServiceOp{Client: c}
 	c.ProjectIPAccessList = &ProjectIPAccessListServiceOp{Client: c}
 	c.WhitelistAPIKeys = &WhitelistAPIKeysServiceOp{Client: c}
 	c.AccessListAPIKeys = &AccessListAPIKeysServiceOp{Client: c}
@@ -288,6 +273,8 @@ func NewClient(httpClient *http.Client) *Client {
 	c.CloudProviderAccess = &CloudProviderAccessServiceOp{Client: c}
 	c.DefaultMongoDBMajorVersion = &DefaultMongoDBMajorVersionServiceOp{Client: c}
 	c.IPInfo = &IPInfoServiceOp{Client: c}
+	c.AdvancedClusters = &AdvancedClustersServiceOp{Client: c}
+	c.ServerlessInstances = &ServerlessInstancesServiceOp{Client: c}
 
 	return c
 }
@@ -344,21 +331,7 @@ func SetUserAgent(ua string) ClientOpt {
 // BaseURL of the Client. Relative URLS should always be specified without a preceding slash. If specified, the
 // value pointed to by body is JSON encoded and included in as the request body.
 func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body interface{}) (*http.Request, error) {
-	if !strings.HasSuffix(c.BaseURL.Path, "/") {
-		return nil, fmt.Errorf("base URL must have a trailing slash, but %q does not", c.BaseURL)
-	}
-	u, err := c.BaseURL.Parse(urlStr)
-	if err != nil {
-		return nil, err
-	}
-	var buf io.Reader
-	if body != nil {
-		if buf, err = c.newEncodedBody(body); err != nil {
-			return nil, err
-		}
-	}
-
-	req, err := http.NewRequest(method, u.String(), buf)
+	req, err := c.newRequest(ctx, urlStr, method, body)
 	if err != nil {
 		return nil, err
 	}
@@ -373,8 +346,8 @@ func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body int
 	return req, nil
 }
 
-// newEncodedBody returns an ReadWriter object containing the body of the http request
-func (c *Client) newEncodedBody(body interface{}) (io.Reader, error) {
+// newEncodedBody returns an ReadWriter object containing the body of the http request.
+func newEncodedBody(body interface{}) (io.Reader, error) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(false)
@@ -386,7 +359,7 @@ func (c *Client) newEncodedBody(body interface{}) (io.Reader, error) {
 // A relative URL can be provided in urlStr, which will be resolved to the
 // BaseURL of the Client. Relative URLS should always be specified without a preceding slash.
 func (c *Client) NewGZipRequest(ctx context.Context, method, urlStr string) (*http.Request, error) {
-	req, err := c.newRequest(urlStr, method)
+	req, err := c.newRequest(ctx, urlStr, method, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +372,7 @@ func (c *Client) NewGZipRequest(ctx context.Context, method, urlStr string) (*ht
 // A relative URL can be provided in urlStr, which will be resolved to the
 // BaseURL of the Client. Relative URLS should always be specified without a preceding slash.
 func (c *Client) NewPlainRequest(ctx context.Context, method, urlStr string) (*http.Request, error) {
-	req, err := c.newRequest(urlStr, method)
+	req, err := c.newRequest(ctx, urlStr, method, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +381,7 @@ func (c *Client) NewPlainRequest(ctx context.Context, method, urlStr string) (*h
 	return req, nil
 }
 
-func (c *Client) newRequest(urlStr, method string) (*http.Request, error) {
+func (c *Client) newRequest(ctx context.Context, urlStr, method string, body interface{}) (*http.Request, error) {
 	if !strings.HasSuffix(c.BaseURL.Path, "/") {
 		return nil, fmt.Errorf("base URL must have a trailing slash, but %q does not", c.BaseURL)
 	}
@@ -419,7 +392,13 @@ func (c *Client) newRequest(urlStr, method string) (*http.Request, error) {
 
 	u := c.BaseURL.ResolveReference(rel)
 
-	req, err := http.NewRequest(method, u.String(), nil)
+	var buf io.Reader
+	if body != nil {
+		if buf, err = newEncodedBody(body); err != nil {
+			return nil, err
+		}
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), buf)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +408,7 @@ func (c *Client) newRequest(urlStr, method string) (*http.Request, error) {
 	return req, nil
 }
 
-// OnRequestCompleted sets the DO API request completion callback
+// OnRequestCompleted sets the DO API request completion callback.
 func (c *Client) OnRequestCompleted(rc RequestCompletionCallback) {
 	c.onRequestCompleted = rc
 }
@@ -484,7 +463,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 			}
 		} else {
 			decErr := json.NewDecoder(resp.Body).Decode(v)
-			if decErr == io.EOF {
+			if errors.Is(decErr, io.EOF) {
 				decErr = nil // ignore EOF errors caused by empty response body
 			}
 			if decErr != nil {
@@ -496,9 +475,33 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	return response, err
 }
 
+// ErrorResponse reports the error caused by an API request.
+type ErrorResponse struct {
+	// Response that caused this error
+	Response *http.Response
+	// ErrorCode is the code as specified in https://docs.atlas.mongodb.com/reference/api/api-errors/
+	ErrorCode string `json:"errorCode"`
+	// HTTPCode status code.
+	HTTPCode int `json:"error"`
+	// Reason is short description of the error, which is simply the HTTP status phrase.
+	Reason string `json:"reason"`
+	// Detail is more detailed description of the error.
+	Detail string `json:"detail,omitempty"`
+}
+
 func (r *ErrorResponse) Error() string {
 	return fmt.Sprintf("%v %v: %d (request %q) %v",
 		r.Response.Request.Method, r.Response.Request.URL, r.Response.StatusCode, r.ErrorCode, r.Detail)
+}
+
+func (r *ErrorResponse) Is(target error) bool {
+	var v *ErrorResponse
+
+	return errors.As(target, &v) &&
+		r.ErrorCode == v.ErrorCode &&
+		r.HTTPCode == v.HTTPCode &&
+		r.Reason == v.Reason &&
+		r.Detail == v.Detail
 }
 
 // CheckResponse checks the API response for errors, and returns them if present. A response is considered an

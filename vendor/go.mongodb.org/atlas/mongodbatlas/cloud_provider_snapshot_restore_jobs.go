@@ -20,7 +20,7 @@ import (
 	"net/http"
 )
 
-const cloudProviderSnapshotRestoreJobBasePath = "groups"
+const cloudProviderSnapshotRestoreJobBasePath = "api/atlas/v1.0/groups"
 
 // CloudProviderSnapshotRestoreJobsService is an interface for interfacing with the CloudProviderSnapshotRestoreJobs
 // endpoints of the MongoDB Atlas API.
@@ -34,7 +34,7 @@ type CloudProviderSnapshotRestoreJobsService interface {
 }
 
 // CloudProviderSnapshotRestoreJobsServiceOp handles communication with the CloudProviderSnapshotRestoreJobs related methods of the
-// MongoDB Atlas API
+// MongoDB Atlas API.
 type CloudProviderSnapshotRestoreJobsServiceOp service
 
 var _ CloudProviderSnapshotRestoreJobsService = &CloudProviderSnapshotRestoreJobsServiceOp{}
@@ -60,7 +60,7 @@ type CloudProviderSnapshotRestoreJob struct {
 	PointInTimeUTCSeconds int64        `json:"pointInTimeUTCSeconds,omitempty"` // Timestamp in the number of seconds that have elapsed since the UNIX epoch from which you want to restore this snapshot.
 }
 
-// CloudProviderSnapshotRestoreJobs represents an array of cloudProviderSnapshotRestoreJob
+// CloudProviderSnapshotRestoreJobs represents an array of cloudProviderSnapshotRestoreJob.
 type CloudProviderSnapshotRestoreJobs struct {
 	Links      []*Link                            `json:"links"`
 	Results    []*CloudProviderSnapshotRestoreJob `json:"results"`
@@ -68,8 +68,8 @@ type CloudProviderSnapshotRestoreJobs struct {
 }
 
 type Component struct {
-	DownloadURL    string `json:"downloadUrl"`    // URL from which the snapshot of the components.replicaSetName should be downloaded. Atlas returns null for this parameter if the download URL has expired, has been used, or hasn't been created.
-	ReplicaSetName string `json:"replicaSetName"` // Name of the shard or config server included in the snapshot.
+	DownloadURL    string `json:"downloadUrl"`    // DownloadURL from which the snapshot of the components.replicaSetName should be downloaded. Atlas returns null for this parameter if the download URL has expired, has been used, or hasn't been created.
+	ReplicaSetName string `json:"replicaSetName"` // ReplicaSetName of the shard or config server included in the snapshot.
 }
 
 // List gets all cloud provider snapshot restore jobs for the specified cluster.

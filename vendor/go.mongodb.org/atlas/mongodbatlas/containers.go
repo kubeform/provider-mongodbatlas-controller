@@ -21,7 +21,7 @@ import (
 	"net/url"
 )
 
-const containersPath = "groups/%s/containers"
+const containersPath = "api/atlas/v1.0/groups/%s/containers"
 
 // ContainersService provides access to the network peering containers related functions in the Atlas API.
 //
@@ -36,12 +36,12 @@ type ContainersService interface {
 }
 
 // ContainersServiceOp handles communication with the Network Peering Container related methods
-// of the MongoDB Atlas API
+// of the MongoDB Atlas API.
 type ContainersServiceOp service
 
 var _ ContainersService = &ContainersServiceOp{}
 
-// ContainersListOptions filtering options for containers
+// ContainersListOptions filtering options for containers.
 type ContainersListOptions struct {
 	ProviderName string `url:"providerName,omitempty"`
 	ListOptions
