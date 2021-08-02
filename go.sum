@@ -1520,8 +1520,8 @@ kmodules.xyz/resource-metadata v0.5.7 h1:5xjq5pEp5hZK+jdkY/4wGk/FMtTyvQ9LlErh7lQ
 kmodules.xyz/resource-metadata v0.5.7/go.mod h1:Jdi7zBXRwwFTOR0CxwKxqJhsDVIilhrgNipPjnKLyrs=
 kubeform.dev/apimachinery v0.0.0-20210629153539-7bcd34a30eb5 h1:kpCzsugm64OMYV9ywBIOXbGN7z5ifK+rnGln+f3Gct4=
 kubeform.dev/apimachinery v0.0.0-20210629153539-7bcd34a30eb5/go.mod h1:kfiYdu87pCcrydTGaLXs4QMFx1fLNP5Yov2KxgrkCm0=
-kubeform.dev/provider-mongodbatlas-api v0.0.0-20210730044337-fc5f6012d54a h1:WM4w9zZ6Kc2zNXMgJMe+mAiy5gnCIDrXYPTDdGpxhUY=
-kubeform.dev/provider-mongodbatlas-api v0.0.0-20210730044337-fc5f6012d54a/go.mod h1:fvfiRbxdWBd3SU8uZ6s5mvulMvRnl4JCNfE5mjayFG8=
+kubeform.dev/provider-mongodbatlas-api v0.3.0 h1:5KFK5CgdDkhDxs7VmcRW0jbUdf/O6FYBCaEMVQBoT24=
+kubeform.dev/provider-mongodbatlas-api v0.3.0/go.mod h1:fvfiRbxdWBd3SU8uZ6s5mvulMvRnl4JCNfE5mjayFG8=
 modernc.org/cc v1.0.0/go.mod h1:1Sk4//wdnYJiUIxnW8ddKpaOJCF37yAdqYnkxUpaYxw=
 modernc.org/golex v1.0.0/go.mod h1:b/QX9oBD/LhixY6NDh+IdGv17hgB+51fET1i2kPSmvk=
 modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03k=
