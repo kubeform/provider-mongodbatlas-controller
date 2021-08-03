@@ -3,7 +3,7 @@
 
 # provider-mongodbatlas-controller
 
-Kubeform controller for [Terraform Mongodbatlas Provider](https://github.com/equinix/terraform-provider-metal)
+Kubeform controller for [Terraform MongoDB Atlas Provider](https://github.com/mongodb/terraform-provider-mongodbatlas)
 
 ## Installation
 
