@@ -1116,7 +1116,7 @@ kmodules.xyz/resource-metadata/pkg/graph
 # kubeform.dev/apimachinery v0.0.0-20210629153539-7bcd34a30eb5
 ## explicit
 kubeform.dev/apimachinery/api/v1alpha1
-# kubeform.dev/provider-mongodbatlas-api v0.3.1-0.20210803085242-f2e335fb9693
+# kubeform.dev/provider-mongodbatlas-api v0.3.1-0.20210804230530-595f45f2406a
 ## explicit
 kubeform.dev/provider-mongodbatlas-api/api/provider
 kubeform.dev/provider-mongodbatlas-api/apis/alert
