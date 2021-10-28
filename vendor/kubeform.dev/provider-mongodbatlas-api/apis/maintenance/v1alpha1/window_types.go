@@ -61,6 +61,8 @@ type WindowSpecResource struct {
 	// +optional
 	AutoDefer *bool `json:"autoDefer,omitempty" tf:"auto_defer"`
 	// +optional
+	AutoDeferOnceEnabled *bool `json:"autoDeferOnceEnabled,omitempty" tf:"auto_defer_once_enabled"`
+	// +optional
 	DayOfWeek *int64 `json:"dayOfWeek,omitempty" tf:"day_of_week"`
 	// +optional
 	Defer *bool `json:"defer,omitempty" tf:"defer"`

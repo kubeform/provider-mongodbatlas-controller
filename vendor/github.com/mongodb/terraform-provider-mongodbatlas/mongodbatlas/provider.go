@@ -1,7 +1,6 @@
 package mongodbatlas
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -22,22 +21,38 @@ func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"public_key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("MONGODB_ATLAS_PUBLIC_KEY", ""),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"MONGODB_ATLAS_PUBLIC_KEY",
+					"MCLI_PUBLIC_API_KEY",
+				}, ""),
 				Description: "MongoDB Atlas Programmatic Public Key",
 			},
 			"private_key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("MONGODB_ATLAS_PRIVATE_KEY", ""),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"MONGODB_ATLAS_PRIVATE_KEY",
+					"MCLI_PRIVATE_API_KEY",
+				}, ""),
 				Description: "MongoDB Atlas Programmatic Private Key",
+				Sensitive:   true,
 			},
 			"base_url": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"MONGODB_ATLAS_BASE_URL",
+					"MCLI_OPS_MANAGER_URL",
+				}, ""),
+				Description: "MongoDB Atlas Base URL",
+			},
+			"realm_base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("MONGODB_ATLAS_BASE_URL", ""),
-				Description: "MongoDB Atlas Base URL",
+				DefaultFunc: schema.EnvDefaultFunc("MONGODB_REALM_BASE_URL", ""),
+				Description: "MongoDB Realm Base URL",
 			},
 		},
 
@@ -68,6 +83,7 @@ func Provider() *schema.Provider {
 			"mongodbatlas_privatelink_endpoint":                  dataSourceMongoDBAtlasPrivateLinkEndpoint(),
 			"mongodbatlas_privatelink_endpoint_service":          dataSourceMongoDBAtlasPrivateEndpointServiceLink(),
 			"mongodbatlas_cloud_provider_snapshot_backup_policy": dataSourceMongoDBAtlasCloudProviderSnapshotBackupPolicy(),
+			"mongodbatlas_cloud_backup_schedule":                 dataSourceMongoDBAtlasCloudBackupSchedule(),
 			"mongodbatlas_third_party_integrations":              dataSourceMongoDBAtlasThirdPartyIntegrations(),
 			"mongodbatlas_third_party_integration":               dataSourceMongoDBAtlasThirdPartyIntegration(),
 			"mongodbatlas_project_ip_access_list":                dataSourceMongoDBAtlasProjectIPAccessList(),
@@ -119,6 +135,7 @@ func Provider() *schema.Provider {
 			"mongodbatlas_search_index":                          resourceMongoDBAtlasSearchIndex(),
 			"mongodbatlas_data_lake":                             resourceMongoDBAtlasDataLake(),
 			"mongodbatlas_event_trigger":                         resourceMongoDBAtlasEventTriggers(),
+			"mongodbatlas_cloud_backup_schedule":                 resourceMongoDBAtlasCloudBackupSchedule(),
 		},
 
 		ConfigureContextFunc: providerConfigure,
@@ -127,12 +144,10 @@ func Provider() *schema.Provider {
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	config := Config{
-		PublicKey:  d.Get("public_key").(string),
-		PrivateKey: d.Get("private_key").(string),
-	}
-
-	if baseURL := d.Get("base_url"); baseURL != nil {
-		config.BaseURL = baseURL.(string)
+		PublicKey:    d.Get("public_key").(string),
+		PrivateKey:   d.Get("private_key").(string),
+		BaseURL:      d.Get("base_url").(string),
+		RealmBaseURL: d.Get("realm_base_url").(string),
 	}
 
 	return config.NewClient(ctx)
@@ -299,15 +314,4 @@ func HashCodeString(s string) int {
 	}
 	// v == MinInt
 	return 0
-}
-
-// HashCodeStrings hashes a list of strings to a unique hashcode.
-func HashCodeStrings(hashStrings []string) string {
-	var buf bytes.Buffer
-
-	for _, s := range hashStrings {
-		buf.WriteString(fmt.Sprintf("%s-", s))
-	}
-
-	return fmt.Sprintf("%d", HashCodeString(buf.String()))
 }

@@ -42,7 +42,7 @@ type ProjectsService interface {
 	GetAllProjects(context.Context, *ListOptions) (*Projects, *Response, error)
 	GetOneProject(context.Context, string) (*Project, *Response, error)
 	GetOneProjectByName(context.Context, string) (*Project, *Response, error)
-	Create(context.Context, *Project) (*Project, *Response, error)
+	Create(context.Context, *Project, *CreateProjectOptions) (*Project, *Response, error)
 	Delete(context.Context, string) (*Response, error)
 	GetProjectTeamsAssigned(context.Context, string) (*TeamsAssigned, *Response, error)
 	AddTeamsToProject(context.Context, string, []*ProjectTeam) (*TeamsAssigned, *Response, error)
@@ -63,12 +63,13 @@ var _ ProjectsService = &ProjectsServiceOp{}
 
 // Project represents the structure of a project.
 type Project struct {
-	ID           string  `json:"id,omitempty"`
-	OrgID        string  `json:"orgId,omitempty"`
-	Name         string  `json:"name,omitempty"`
-	ClusterCount int     `json:"clusterCount,omitempty"`
-	Created      string  `json:"created,omitempty"`
-	Links        []*Link `json:"links,omitempty"`
+	ID                      string  `json:"id,omitempty"`
+	OrgID                   string  `json:"orgId,omitempty"`
+	Name                    string  `json:"name,omitempty"`
+	ClusterCount            int     `json:"clusterCount,omitempty"`
+	Created                 string  `json:"created,omitempty"`
+	RegionUsageRestrictions string  `json:"regionUsageRestrictions,omitempty"` // RegionUsageRestrictions for cloud.mongodbgov.com, valid values are GOV_REGIONS_ONLY, COMMERCIAL_FEDRAMP_REGIONS_ONLY, NONE
+	Links                   []*Link `json:"links,omitempty"`
 }
 
 // Projects represents a array of project.
@@ -96,6 +97,10 @@ type TeamsAssigned struct {
 	Links      []*Link   `json:"links"`
 	Results    []*Result `json:"results"`
 	TotalCount int       `json:"totalCount"`
+}
+
+type CreateProjectOptions struct {
+	ProjectOwnerID string `url:"projectOwnerId,omitempty"` // Unique 24-hexadecimal digit string that identifies the Atlas user account to be granted the Project Owner role on the specified project.
 }
 
 // GetAllProjects gets all project.
@@ -176,12 +181,17 @@ func (s *ProjectsServiceOp) GetOneProjectByName(ctx context.Context, projectName
 // Create creates a project.
 //
 // See more: https://docs.atlas.mongodb.com/reference/api/project-create-one/
-func (s *ProjectsServiceOp) Create(ctx context.Context, createRequest *Project) (*Project, *Response, error) {
+func (s *ProjectsServiceOp) Create(ctx context.Context, createRequest *Project, opts *CreateProjectOptions) (*Project, *Response, error) {
 	if createRequest == nil {
 		return nil, nil, NewArgError("createRequest", "cannot be nil")
 	}
 
-	req, err := s.Client.NewRequest(ctx, http.MethodPost, projectBasePath, createRequest)
+	path, err := setListOptions(projectBasePath, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.Client.NewRequest(ctx, http.MethodPost, path, createRequest)
 	if err != nil {
 		return nil, nil, err
 	}

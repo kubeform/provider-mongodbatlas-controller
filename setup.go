@@ -306,6 +306,23 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 	case schema.GroupVersionKind{
 		Group:   "cloud.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
+		Kind:    "BackupSchedule",
+	}:
+		if err := (&controllerscloud.BackupScheduleReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("BackupSchedule"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_cloud_backup_schedule"],
+			TypeName: "mongodbatlas_cloud_backup_schedule",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "BackupSchedule")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
 		Kind:    "ProviderAccess",
 	}:
 		if err := (&controllerscloud.ProviderAccessReconciler{
@@ -839,6 +856,15 @@ func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 	}:
 		if err := (&auditingv1alpha1.Auditing{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Auditing")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSchedule",
+	}:
+		if err := (&cloudv1alpha1.BackupSchedule{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupSchedule")
 			return err
 		}
 	case schema.GroupVersionKind{

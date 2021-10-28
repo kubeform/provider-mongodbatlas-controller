@@ -42,7 +42,7 @@ const (
 	gzipMediaType  = "application/gzip"
 	libraryName    = "go-mongodbatlas"
 	// Version the version of the current API client. Should be set to the next version planned to be released.
-	Version = "0.10.1"
+	Version = "0.13.0"
 )
 
 var (
@@ -138,6 +138,9 @@ type Client struct {
 	IPInfo                              IPInfoService
 	AdvancedClusters                    AdvancedClustersService
 	ServerlessInstances                 ServerlessInstancesService
+	LiveMigration                       LiveMigrationService
+	AccessTracking                      AccessTrackingService
+	ServiceVersion                      ServiceVersionService
 
 	onRequestCompleted RequestCompletionCallback
 }
@@ -275,6 +278,9 @@ func NewClient(httpClient *http.Client) *Client {
 	c.IPInfo = &IPInfoServiceOp{Client: c}
 	c.AdvancedClusters = &AdvancedClustersServiceOp{Client: c}
 	c.ServerlessInstances = &ServerlessInstancesServiceOp{Client: c}
+	c.LiveMigration = &LiveMigrationServiceOp{Client: c}
+	c.AccessTracking = &AccessTrackingServiceOp{Client: c}
+	c.ServiceVersion = &ServiceVersionServiceOp{Client: c}
 
 	return c
 }
@@ -559,4 +565,39 @@ func setListOptions(s string, opt interface{}) (string, error) {
 
 	origURL.RawQuery = origValues.Encode()
 	return origURL.String(), nil
+}
+
+// ServiceVersion represents version information.
+type ServiceVersion struct {
+	GitHash string
+	Version string
+}
+
+// String serializes VersionInfo into string.
+func (v *ServiceVersion) String() string {
+	return fmt.Sprintf("gitHash=%s; versionString=%s", v.GitHash, v.Version)
+}
+
+func parseVersionInfo(s string) *ServiceVersion {
+	if s == "" {
+		return nil
+	}
+
+	var result ServiceVersion
+	pairs := strings.Split(s, ";")
+	for _, pair := range pairs {
+		keyvalue := strings.Split(strings.TrimSpace(pair), "=")
+		switch keyvalue[0] {
+		case "gitHash":
+			result.GitHash = keyvalue[1]
+		case "versionString":
+			result.Version = keyvalue[1]
+		}
+	}
+	return &result
+}
+
+// ServiceVersion parses version information returned in the response.
+func (resp *Response) ServiceVersion() *ServiceVersion {
+	return parseVersionInfo(resp.Header.Get("X-MongoDB-Service-Version"))
 }

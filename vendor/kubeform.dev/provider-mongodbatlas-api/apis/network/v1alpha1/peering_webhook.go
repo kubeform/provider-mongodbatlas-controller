@@ -45,6 +45,7 @@ var peeringForceNewList = map[string]bool{
 	"/atlas_cidr_block": true,
 	"/container_id":     true,
 	"/project_id":       true,
+	"/vpc_id":           true,
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type

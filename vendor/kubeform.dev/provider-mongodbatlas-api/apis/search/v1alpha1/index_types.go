@@ -41,71 +41,6 @@ type Index struct {
 	Status            IndexStatus `json:"status,omitempty"`
 }
 
-type IndexSpecAnalyzersCharFilters struct {
-	// +optional
-	IgnoreTags []string `json:"ignoreTags,omitempty" tf:"ignore_tags"`
-	// +optional
-	Mappings *string `json:"mappings,omitempty" tf:"mappings"`
-	Type     *string `json:"type" tf:"type"`
-}
-
-type IndexSpecAnalyzersTokenFilters struct {
-	// +optional
-	IgnoreCase *bool `json:"ignoreCase,omitempty" tf:"ignore_case"`
-	// +optional
-	Matches *string `json:"matches,omitempty" tf:"matches"`
-	// +optional
-	Max *int64 `json:"max,omitempty" tf:"max"`
-	// +optional
-	MaxGram *int64 `json:"maxGram,omitempty" tf:"max_gram"`
-	// +optional
-	MaxShingleSize *int64 `json:"maxShingleSize,omitempty" tf:"max_shingle_size"`
-	// +optional
-	Min *int64 `json:"min,omitempty" tf:"min"`
-	// +optional
-	MinGram *int64 `json:"minGram,omitempty" tf:"min_gram"`
-	// +optional
-	MinShingleSize *int64 `json:"minShingleSize,omitempty" tf:"min_shingle_size"`
-	// +optional
-	NormalizationForm *string `json:"normalizationForm,omitempty" tf:"normalization_form"`
-	// +optional
-	OriginalTokens *string `json:"originalTokens,omitempty" tf:"original_tokens"`
-	// +optional
-	Pattern *string `json:"pattern,omitempty" tf:"pattern"`
-	// +optional
-	Replacement *string `json:"replacement,omitempty" tf:"replacement"`
-	// +optional
-	StemmerName *string `json:"stemmerName,omitempty" tf:"stemmer_name"`
-	// +optional
-	TermsNotInBounds *string `json:"termsNotInBounds,omitempty" tf:"terms_not_in_bounds"`
-	// +optional
-	Tokens []string `json:"tokens,omitempty" tf:"tokens"`
-	Type   *string  `json:"type" tf:"type"`
-}
-
-type IndexSpecAnalyzersTokenizer struct {
-	// +optional
-	Group *int64 `json:"group,omitempty" tf:"group"`
-	// +optional
-	MaxGram *int64 `json:"maxGram,omitempty" tf:"max_gram"`
-	// +optional
-	MaxTokenLength *int64 `json:"maxTokenLength,omitempty" tf:"max_token_length"`
-	// +optional
-	MinGram *int64 `json:"minGram,omitempty" tf:"min_gram"`
-	// +optional
-	Pattern *string `json:"pattern,omitempty" tf:"pattern"`
-	Type    *string `json:"type" tf:"type"`
-}
-
-type IndexSpecAnalyzers struct {
-	// +optional
-	CharFilters []IndexSpecAnalyzersCharFilters `json:"charFilters,omitempty" tf:"char_filters"`
-	Name        *string                         `json:"name" tf:"name"`
-	// +optional
-	TokenFilters []IndexSpecAnalyzersTokenFilters `json:"tokenFilters,omitempty" tf:"token_filters"`
-	Tokenizer    *IndexSpecAnalyzersTokenizer     `json:"tokenizer" tf:"tokenizer"`
-}
-
 type IndexSpec struct {
 	State *IndexSpecResource `json:"state,omitempty" tf:"-"`
 
@@ -125,10 +60,10 @@ type IndexSpecResource struct {
 
 	Analyzer *string `json:"analyzer" tf:"analyzer"`
 	// +optional
-	Analyzers      []IndexSpecAnalyzers `json:"analyzers,omitempty" tf:"analyzers"`
-	ClusterName    *string              `json:"clusterName" tf:"cluster_name"`
-	CollectionName *string              `json:"collectionName" tf:"collection_name"`
-	Database       *string              `json:"database" tf:"database"`
+	Analyzers      *string `json:"analyzers,omitempty" tf:"analyzers"`
+	ClusterName    *string `json:"clusterName" tf:"cluster_name"`
+	CollectionName *string `json:"collectionName" tf:"collection_name"`
+	Database       *string `json:"database" tf:"database"`
 	// +optional
 	IndexID *string `json:"indexID,omitempty" tf:"index_id"`
 	// +optional

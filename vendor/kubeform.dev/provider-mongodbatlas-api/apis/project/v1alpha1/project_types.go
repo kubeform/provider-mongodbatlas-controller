@@ -70,6 +70,8 @@ type ProjectSpecResource struct {
 	Name    *string `json:"name" tf:"name"`
 	OrgID   *string `json:"orgID" tf:"org_id"`
 	// +optional
+	ProjectOwnerID *string `json:"projectOwnerID,omitempty" tf:"project_owner_id"`
+	// +optional
 	Teams []ProjectSpecTeams `json:"teams,omitempty" tf:"teams"`
 }
 

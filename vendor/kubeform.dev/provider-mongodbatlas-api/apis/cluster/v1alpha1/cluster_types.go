@@ -43,6 +43,10 @@ type Cluster struct {
 
 type ClusterSpecAdvancedConfiguration struct {
 	// +optional
+	DefaultReadConcern *string `json:"defaultReadConcern,omitempty" tf:"default_read_concern"`
+	// +optional
+	DefaultWriteConcern *string `json:"defaultWriteConcern,omitempty" tf:"default_write_concern"`
+	// +optional
 	FailIndexKeyTooLong *bool `json:"failIndexKeyTooLong,omitempty" tf:"fail_index_key_too_long"`
 	// +optional
 	JavascriptEnabled *bool `json:"javascriptEnabled,omitempty" tf:"javascript_enabled"`
@@ -199,6 +203,7 @@ type ClusterSpecResource struct {
 	AutoScalingDiskGbEnabled *bool `json:"autoScalingDiskGbEnabled,omitempty" tf:"auto_scaling_disk_gb_enabled"`
 	// +optional
 	BackingProviderName *string `json:"backingProviderName,omitempty" tf:"backing_provider_name"`
+	// Clusters running MongoDB FCV 4.2 or later and any new Atlas clusters of any type do not support this parameter
 	// +optional
 	BackupEnabled *bool `json:"backupEnabled,omitempty" tf:"backup_enabled"`
 	// +optional
@@ -206,6 +211,8 @@ type ClusterSpecResource struct {
 	BiConnector *map[string]string `json:"biConnector,omitempty" tf:"bi_connector"`
 	// +optional
 	BiConnectorConfig *ClusterSpecBiConnectorConfig `json:"biConnectorConfig,omitempty" tf:"bi_connector_config"`
+	// +optional
+	CloudBackup *bool `json:"cloudBackup,omitempty" tf:"cloud_backup"`
 	// +optional
 	ClusterID *string `json:"clusterID,omitempty" tf:"cluster_id"`
 	// +optional
@@ -243,6 +250,7 @@ type ClusterSpecResource struct {
 	// +optional
 	ProviderAutoScalingComputeMinInstanceSize *string `json:"providerAutoScalingComputeMinInstanceSize,omitempty" tf:"provider_auto_scaling_compute_min_instance_size"`
 	// +optional
+	// Deprecated
 	ProviderBackupEnabled *bool `json:"providerBackupEnabled,omitempty" tf:"provider_backup_enabled"`
 	// +optional
 	ProviderDiskIops *int64 `json:"providerDiskIops,omitempty" tf:"provider_disk_iops"`

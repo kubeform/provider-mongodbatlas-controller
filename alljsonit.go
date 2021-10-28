@@ -72,6 +72,14 @@ var (
 		{
 			Group:    "cloud.mongodbatlas.kubeform.com",
 			Version:  "v1alpha1",
+			Resource: "backupschedules",
+		}: {
+			JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),
+			ResourceType: "mongodbatlas_cloud_backup_schedule",
+		},
+		{
+			Group:    "cloud.mongodbatlas.kubeform.com",
+			Version:  "v1alpha1",
 			Resource: "provideraccesses",
 		}: {
 			JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),

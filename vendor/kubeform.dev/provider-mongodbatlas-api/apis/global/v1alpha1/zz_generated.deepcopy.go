@@ -160,6 +160,16 @@ func (in *ClusterConfigSpecManagedNamespaces) DeepCopyInto(out *ClusterConfigSpe
 		*out = new(string)
 		**out = **in
 	}
+	if in.IsCustomShardKeyHashed != nil {
+		in, out := &in.IsCustomShardKeyHashed, &out.IsCustomShardKeyHashed
+		*out = new(bool)
+		**out = **in
+	}
+	if in.IsShardKeyUnique != nil {
+		in, out := &in.IsShardKeyUnique, &out.IsShardKeyUnique
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
