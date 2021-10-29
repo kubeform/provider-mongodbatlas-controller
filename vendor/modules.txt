@@ -1312,7 +1312,7 @@ kmodules.xyz/resource-metrics/api
 ## explicit
 kubeform.dev/apimachinery/api/v1alpha1
 kubeform.dev/apimachinery/pkg/util
-# kubeform.dev/provider-mongodbatlas-api v0.3.1-0.20211029111053-75eab34f11e2
+# kubeform.dev/provider-mongodbatlas-api v0.4.0
 ## explicit
 kubeform.dev/provider-mongodbatlas-api/api/provider
 kubeform.dev/provider-mongodbatlas-api/apis/alert
