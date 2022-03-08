@@ -43,6 +43,7 @@ var _ webhook.Validator = &EndpointService{}
 
 var endpointserviceForceNewList = map[string]bool{
 	"/endpoint_service_id": true,
+	"/gcp_project_id":      true,
 	"/private_link_id":     true,
 	"/project_id":          true,
 	"/provider_name":       true,
@@ -91,7 +92,7 @@ func (r *EndpointService) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range endpointserviceForceNewList {
+	for key, _ := range endpointserviceForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

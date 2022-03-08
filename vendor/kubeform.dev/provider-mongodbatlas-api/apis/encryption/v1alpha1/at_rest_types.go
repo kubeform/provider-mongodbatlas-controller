@@ -41,6 +41,50 @@ type AtRest struct {
 	Status            AtRestStatus `json:"status,omitempty"`
 }
 
+type AtRestSpecAwsKmsConfig struct {
+	// +optional
+	AccessKeyID *string `json:"-" sensitive:"true" tf:"access_key_id"`
+	// +optional
+	CustomerMasterKeyID *string `json:"-" sensitive:"true" tf:"customer_master_key_id"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty" tf:"enabled"`
+	// +optional
+	Region *string `json:"region,omitempty" tf:"region"`
+	// +optional
+	RoleID *string `json:"roleID,omitempty" tf:"role_id"`
+	// +optional
+	SecretAccessKey *string `json:"-" sensitive:"true" tf:"secret_access_key"`
+}
+
+type AtRestSpecAzureKeyVaultConfig struct {
+	// +optional
+	AzureEnvironment *string `json:"azureEnvironment,omitempty" tf:"azure_environment"`
+	// +optional
+	ClientID *string `json:"-" sensitive:"true" tf:"client_id"`
+	Enabled  *bool   `json:"enabled" tf:"enabled"`
+	// +optional
+	KeyIdentifier *string `json:"-" sensitive:"true" tf:"key_identifier"`
+	// +optional
+	KeyVaultName *string `json:"keyVaultName,omitempty" tf:"key_vault_name"`
+	// +optional
+	ResourceGroupName *string `json:"resourceGroupName,omitempty" tf:"resource_group_name"`
+	// +optional
+	Secret *string `json:"-" sensitive:"true" tf:"secret"`
+	// +optional
+	SubscriptionID *string `json:"-" sensitive:"true" tf:"subscription_id"`
+	// +optional
+	TenantID *string `json:"-" sensitive:"true" tf:"tenant_id"`
+}
+
+type AtRestSpecGoogleCloudKmsConfig struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty" tf:"enabled"`
+	// +optional
+	KeyVersionResourceID *string `json:"-" sensitive:"true" tf:"key_version_resource_id"`
+	// +optional
+	ServiceAccountKey *string `json:"-" sensitive:"true" tf:"service_account_key"`
+}
+
 type AtRestSpec struct {
 	State *AtRestSpecResource `json:"state,omitempty" tf:"-"`
 
@@ -61,15 +105,18 @@ type AtRestSpecResource struct {
 	ID string `json:"id,omitempty" tf:"id,omitempty"`
 
 	// +optional
-	AwsKms map[string]string `json:"-" sensitive:"true" tf:"aws_kms"`
+	AwsKms *map[string]string `json:"-" sensitive:"true" tf:"aws_kms"`
 	// +optional
+	AwsKmsConfig *AtRestSpecAwsKmsConfig `json:"-" sensitive:"true" tf:"aws_kms_config"`
 	// +optional
-	AzureKeyVault map[string]string `json:"-" sensitive:"true" tf:"azure_key_vault"`
+	AzureKeyVault *map[string]string `json:"-" sensitive:"true" tf:"azure_key_vault"`
 	// +optional
+	AzureKeyVaultConfig *AtRestSpecAzureKeyVaultConfig `json:"-" sensitive:"true" tf:"azure_key_vault_config"`
 	// +optional
-	GoogleCloudKms map[string]string `json:"-" sensitive:"true" tf:"google_cloud_kms"`
+	GoogleCloudKms *map[string]string `json:"-" sensitive:"true" tf:"google_cloud_kms"`
 	// +optional
-	ProjectID *string `json:"projectID" tf:"project_id"`
+	GoogleCloudKmsConfig *AtRestSpecGoogleCloudKmsConfig `json:"-" sensitive:"true" tf:"google_cloud_kms_config"`
+	ProjectID            *string                         `json:"projectID" tf:"project_id"`
 }
 
 type AtRestStatus struct {

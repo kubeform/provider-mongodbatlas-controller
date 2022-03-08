@@ -23,7 +23,10 @@ type MongodbatlasSpec struct {
 	// +optional
 	BaseURL *string `json:"baseURL,omitempty" tf:"base_url"`
 	// MongoDB Atlas Programmatic Private Key
-	PrivateKey *string `json:"privateKey" tf:"private_key"`
+	PrivateKey *string `json:"-" sensitive:"true" tf:"private_key"`
 	// MongoDB Atlas Programmatic Public Key
 	PublicKey *string `json:"publicKey" tf:"public_key"`
+	// MongoDB Realm Base URL
+	// +optional
+	RealmBaseURL *string `json:"realmBaseURL,omitempty" tf:"realm_base_url"`
 }

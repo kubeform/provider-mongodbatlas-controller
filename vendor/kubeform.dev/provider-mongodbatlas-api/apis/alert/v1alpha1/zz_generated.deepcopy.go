@@ -286,6 +286,11 @@ func (in *ConfigurationSpecNotification) DeepCopyInto(out *ConfigurationSpecNoti
 		*out = new(string)
 		**out = **in
 	}
+	if in.TeamName != nil {
+		in, out := &in.TeamName, &out.TeamName
+		*out = new(string)
+		**out = **in
+	}
 	if in.TypeName != nil {
 		in, out := &in.TypeName, &out.TypeName
 		*out = new(string)

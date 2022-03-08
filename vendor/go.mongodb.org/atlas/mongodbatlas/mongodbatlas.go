@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -42,7 +41,7 @@ const (
 	gzipMediaType  = "application/gzip"
 	libraryName    = "go-mongodbatlas"
 	// Version the version of the current API client. Should be set to the next version planned to be released.
-	Version = "0.10.1"
+	Version = "0.15.0"
 )
 
 var (
@@ -138,6 +137,11 @@ type Client struct {
 	IPInfo                              IPInfoService
 	AdvancedClusters                    AdvancedClustersService
 	ServerlessInstances                 ServerlessInstancesService
+	LiveMigration                       LiveMigrationService
+	AccessTracking                      AccessTrackingService
+	ServiceVersion                      ServiceVersionService
+	CloudProviderSnapshotExportBuckets  CloudProviderSnapshotExportBucketsService
+	CloudProviderSnapshotExportJobs     CloudProviderSnapshotExportJobsService
 
 	onRequestCompleted RequestCompletionCallback
 }
@@ -275,6 +279,11 @@ func NewClient(httpClient *http.Client) *Client {
 	c.IPInfo = &IPInfoServiceOp{Client: c}
 	c.AdvancedClusters = &AdvancedClustersServiceOp{Client: c}
 	c.ServerlessInstances = &ServerlessInstancesServiceOp{Client: c}
+	c.LiveMigration = &LiveMigrationServiceOp{Client: c}
+	c.AccessTracking = &AccessTrackingServiceOp{Client: c}
+	c.ServiceVersion = &ServiceVersionServiceOp{Client: c}
+	c.CloudProviderSnapshotExportBuckets = &CloudProviderSnapshotExportBucketsServiceOp{Client: c}
+	c.CloudProviderSnapshotExportJobs = &CloudProviderSnapshotExportJobsServiceOp{Client: c}
 
 	return c
 }
@@ -433,20 +442,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 		c.onRequestCompleted(req, resp)
 	}
 
-	defer func() {
-		// Ensure the response body is fully read and closed
-		// before we reconnect, so that we reuse the same TCP connection.
-		// Close the previous response's body. But read at least some of
-		// the body so if it's small the underlying TCP connection will be
-		// re-used. No need to check for errors: if it fails, the Transport
-		// won't reuse it anyway.
-		const maxBodySlurpSize = 2 << 10
-		if resp.ContentLength == -1 || resp.ContentLength <= maxBodySlurpSize {
-			_, _ = io.CopyN(ioutil.Discard, resp.Body, maxBodySlurpSize)
-		}
-
-		resp.Body.Close()
-	}()
+	defer resp.Body.Close()
 
 	response := &Response{Response: resp}
 
@@ -513,7 +509,7 @@ func CheckResponse(r *http.Response) error {
 	}
 
 	errorResponse := &ErrorResponse{Response: r}
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err == nil && len(data) > 0 {
 		err := json.Unmarshal(data, errorResponse)
 		if err != nil {
@@ -559,4 +555,39 @@ func setListOptions(s string, opt interface{}) (string, error) {
 
 	origURL.RawQuery = origValues.Encode()
 	return origURL.String(), nil
+}
+
+// ServiceVersion represents version information.
+type ServiceVersion struct {
+	GitHash string
+	Version string
+}
+
+// String serializes VersionInfo into string.
+func (v *ServiceVersion) String() string {
+	return fmt.Sprintf("gitHash=%s; versionString=%s", v.GitHash, v.Version)
+}
+
+func parseVersionInfo(s string) *ServiceVersion {
+	if s == "" {
+		return nil
+	}
+
+	var result ServiceVersion
+	pairs := strings.Split(s, ";")
+	for _, pair := range pairs {
+		keyvalue := strings.Split(strings.TrimSpace(pair), "=")
+		switch keyvalue[0] {
+		case "gitHash":
+			result.GitHash = keyvalue[1]
+		case "versionString":
+			result.Version = keyvalue[1]
+		}
+	}
+	return &result
+}
+
+// ServiceVersion parses version information returned in the response.
+func (resp *Response) ServiceVersion() *ServiceVersion {
+	return parseVersionInfo(resp.Header.Get("X-MongoDB-Service-Version"))
 }

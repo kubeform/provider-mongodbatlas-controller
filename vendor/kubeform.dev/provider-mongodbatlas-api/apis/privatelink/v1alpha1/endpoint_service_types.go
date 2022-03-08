@@ -41,6 +41,17 @@ type EndpointService struct {
 	Status            EndpointServiceStatus `json:"status,omitempty"`
 }
 
+type EndpointServiceSpecEndpoints struct {
+	// +optional
+	EndpointName *string `json:"endpointName,omitempty" tf:"endpoint_name"`
+	// +optional
+	IpAddress *string `json:"ipAddress,omitempty" tf:"ip_address"`
+	// +optional
+	ServiceAttachmentName *string `json:"serviceAttachmentName,omitempty" tf:"service_attachment_name"`
+	// +optional
+	Status *string `json:"status,omitempty" tf:"status"`
+}
+
 type EndpointServiceSpec struct {
 	State *EndpointServiceSpecResource `json:"state,omitempty" tf:"-"`
 
@@ -63,10 +74,18 @@ type EndpointServiceSpecResource struct {
 	// +optional
 	AzureStatus *string `json:"azureStatus,omitempty" tf:"azure_status"`
 	// +optional
-	DeleteRequested   *bool   `json:"deleteRequested,omitempty" tf:"delete_requested"`
+	DeleteRequested *bool `json:"deleteRequested,omitempty" tf:"delete_requested"`
+	// +optional
+	EndpointGroupName *string `json:"endpointGroupName,omitempty" tf:"endpoint_group_name"`
 	EndpointServiceID *string `json:"endpointServiceID" tf:"endpoint_service_id"`
 	// +optional
+	Endpoints []EndpointServiceSpecEndpoints `json:"endpoints,omitempty" tf:"endpoints"`
+	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty" tf:"error_message"`
+	// +optional
+	GcpProjectID *string `json:"gcpProjectID,omitempty" tf:"gcp_project_id"`
+	// +optional
+	GcpStatus *string `json:"gcpStatus,omitempty" tf:"gcp_status"`
 	// +optional
 	InterfaceEndpointID *string `json:"interfaceEndpointID,omitempty" tf:"interface_endpoint_id"`
 	// +optional

@@ -201,8 +201,10 @@ func resourceMongoDBAtlasEventTriggers() *schema.Resource {
 }
 
 func resourceMongoDBAtlasEventTriggersCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	conn := meta.(*MongoDBClient).Realm
-
+	conn, err := meta.(*MongoDBClient).GetRealmClient(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	projectID := d.Get("project_id").(string)
 	appID := d.Get("app_id").(string)
 	typeTrigger := d.Get("type").(string)
@@ -269,6 +271,9 @@ func resourceMongoDBAtlasEventTriggersCreate(ctx context.Context, d *schema.Reso
 	if v, ok := d.GetOk("config_full_document"); ok {
 		eventTriggerConfig.FullDocument = pointy.Bool(v.(bool))
 	}
+	if v, ok := d.GetOk("config_full_document_before"); ok {
+		eventTriggerConfig.FullDocumentBeforeChange = pointy.Bool(v.(bool))
+	}
 	if oksch {
 		eventTriggerConfig.Schedule = sche.(string)
 	}
@@ -294,7 +299,10 @@ func resourceMongoDBAtlasEventTriggersCreate(ctx context.Context, d *schema.Reso
 }
 
 func resourceMongoDBAtlasEventTriggersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	conn := meta.(*MongoDBClient).Realm
+	conn, err := meta.(*MongoDBClient).GetRealmClient(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	ids := decodeStateID(d.Id())
 	projectID := ids["project_id"]
@@ -359,9 +367,11 @@ func resourceMongoDBAtlasEventTriggersRead(ctx context.Context, d *schema.Resour
 	if err = d.Set("config_full_document", resp.Config.FullDocument); err != nil {
 		return diag.FromErr(fmt.Errorf(errorEventTriggersSetting, "config_full_document", projectID, appID, err))
 	}
+
 	if err = d.Set("config_full_document_before", resp.Config.FullDocumentBeforeChange); err != nil {
-		return diag.FromErr(fmt.Errorf(errorEventTriggersSetting, "config_full_document_before", projectID, appID, err))
+		return diag.FromErr(fmt.Errorf(errorEventTriggersSetting, "config_full_document", projectID, appID, err))
 	}
+
 	if err = d.Set("config_schedule", resp.Config.Schedule); err != nil {
 		return diag.FromErr(fmt.Errorf(errorEventTriggersSetting, "config_schedule", projectID, appID, err))
 	}
@@ -377,7 +387,10 @@ func resourceMongoDBAtlasEventTriggersRead(ctx context.Context, d *schema.Resour
 
 func resourceMongoDBAtlasEventTriggersUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// Get the client connection.
-	conn := meta.(*MongoDBClient).Realm
+	conn, err := meta.(*MongoDBClient).GetRealmClient(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	ids := decodeStateID(d.Id())
 	projectID := ids["project_id"]
@@ -403,6 +416,7 @@ func resourceMongoDBAtlasEventTriggersUpdate(ctx context.Context, d *schema.Reso
 		eventTriggerConfig.Match = cast.ToStringMap(d.Get("config_match").(string))
 		eventTriggerConfig.Project = cast.ToStringMap(d.Get("config_project").(string))
 		eventTriggerConfig.FullDocument = pointy.Bool(d.Get("config_full_document").(bool))
+		eventTriggerConfig.FullDocumentBeforeChange = pointy.Bool(d.Get("config_full_document_before").(bool))
 	}
 	if typeTrigger == "AUTHENTICATION" {
 		eventTriggerConfig.OperationType = d.Get("config_operation_type").(string)
@@ -416,7 +430,7 @@ func resourceMongoDBAtlasEventTriggersUpdate(ctx context.Context, d *schema.Reso
 
 	eventReq.Config = eventTriggerConfig
 
-	_, _, err := conn.EventTriggers.Update(ctx, projectID, appID, triggerID, eventReq)
+	_, _, err = conn.EventTriggers.Update(ctx, projectID, appID, triggerID, eventReq)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf(errorEventTriggersUpdate, projectID, appID, err))
 	}
@@ -426,14 +440,17 @@ func resourceMongoDBAtlasEventTriggersUpdate(ctx context.Context, d *schema.Reso
 
 func resourceMongoDBAtlasEventTriggersDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// Get the client connection.
-	conn := meta.(*MongoDBClient).Realm
+	conn, err := meta.(*MongoDBClient).GetRealmClient(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	ids := decodeStateID(d.Id())
 
 	projectID := ids["project_id"]
 	appID := ids["app_id"]
 	triggerID := ids["trigger_id"]
 
-	_, err := conn.EventTriggers.Delete(ctx, projectID, appID, triggerID)
+	_, err = conn.EventTriggers.Delete(ctx, projectID, appID, triggerID)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf(errorEventTriggersDelete, projectID, appID, err))
 	}
@@ -466,7 +483,7 @@ func expandTriggerEventProcessorAWSEventBridge(p []interface{}) map[string]inter
 
 func flattenTriggerEventProcessorAWSEventBridge(eventProcessor map[string]interface{}) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0)
-	if eventProcessor != nil {
+	if eventProcessor != nil && eventProcessor["AWS_EVENTBRIDGE"] != nil {
 		event := eventProcessor["AWS_EVENTBRIDGE"].(map[string]interface{})
 		config := event["config"].(map[string]interface{})
 		mapEvent := map[string]interface{}{
@@ -477,7 +494,6 @@ func flattenTriggerEventProcessorAWSEventBridge(eventProcessor map[string]interf
 				},
 			},
 		}
-
 		results = append(results, mapEvent)
 	}
 
@@ -485,7 +501,10 @@ func flattenTriggerEventProcessorAWSEventBridge(eventProcessor map[string]interf
 }
 
 func resourceMongoDBAtlasEventTriggerImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	conn := meta.(*MongoDBClient).Realm
+	conn, err := meta.(*MongoDBClient).GetRealmClient(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	parts := strings.Split(d.Id(), "--")
 	if len(parts) != 3 {
@@ -496,7 +515,7 @@ func resourceMongoDBAtlasEventTriggerImportState(ctx context.Context, d *schema.
 	appID := parts[1]
 	triggerID := parts[2]
 
-	_, _, err := conn.EventTriggers.Get(ctx, projectID, appID, triggerID)
+	_, _, err = conn.EventTriggers.Get(ctx, projectID, appID, triggerID)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't import event trigger %s in project %s, error: %s", triggerID, projectID, err)
 	}

@@ -88,7 +88,7 @@ func (r *ProviderSnapshotBackupPolicy) ValidateUpdate(old runtime.Object) error 
 		return err
 	}
 
-	for key := range providersnapshotbackuppolicyForceNewList {
+	for key, _ := range providersnapshotbackuppolicyForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

@@ -41,6 +41,11 @@ type Project struct {
 	Status            ProjectStatus `json:"status,omitempty"`
 }
 
+type ProjectSpecApiKeys struct {
+	ApiKeyID  *string  `json:"apiKeyID" tf:"api_key_id"`
+	RoleNames []string `json:"roleNames" tf:"role_names"`
+}
+
 type ProjectSpecTeams struct {
 	RoleNames []string `json:"roleNames" tf:"role_names"`
 	TeamID    *string  `json:"teamID" tf:"team_id"`
@@ -64,13 +69,19 @@ type ProjectSpecResource struct {
 	ID string `json:"id,omitempty" tf:"id,omitempty"`
 
 	// +optional
+	ApiKeys []ProjectSpecApiKeys `json:"apiKeys,omitempty" tf:"api_keys"`
+	// +optional
 	ClusterCount *int64 `json:"clusterCount,omitempty" tf:"cluster_count"`
 	// +optional
 	Created *string `json:"created,omitempty" tf:"created"`
 	Name    *string `json:"name" tf:"name"`
 	OrgID   *string `json:"orgID" tf:"org_id"`
 	// +optional
+	ProjectOwnerID *string `json:"projectOwnerID,omitempty" tf:"project_owner_id"`
+	// +optional
 	Teams []ProjectSpecTeams `json:"teams,omitempty" tf:"teams"`
+	// +optional
+	WithDefaultAlertsSettings *bool `json:"withDefaultAlertsSettings,omitempty" tf:"with_default_alerts_settings"`
 }
 
 type ProjectStatus struct {

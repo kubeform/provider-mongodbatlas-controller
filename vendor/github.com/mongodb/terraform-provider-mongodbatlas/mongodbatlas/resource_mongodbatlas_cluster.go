@@ -9,18 +9,16 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
-	"time"
-
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/mwielbut/pointy"
 	"github.com/spf13/cast"
-
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -79,9 +77,10 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 				Computed: true,
 			},
 			"backup_enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Clusters running MongoDB FCV 4.2 or later and any new Atlas clusters of any type do not support this parameter",
 			},
 			"bi_connector": {
 				Type:          schema.TypeMap,
@@ -145,9 +144,16 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 				Default:  1,
 			},
 			"provider_backup_enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    false,
+				Deprecated: "This field is deprecated,please use cloud_backup instead",
+			},
+			"cloud_backup": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ConflictsWith: []string{"provider_backup_enabled", "backup_enabled"},
 			},
 			"provider_instance_size_name": {
 				Type:     schema.TypeString,
@@ -199,14 +205,16 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 				Computed: true,
 			},
 			"provider_auto_scaling_compute_min_instance_size": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: isEqualProviderAutoScalingMinInstanceSize,
 			},
 			"provider_auto_scaling_compute_max_instance_size": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: isEqualProviderAutoScalingMaxInstanceSize,
 			},
 			"replication_factor": {
 				Type:     schema.TypeInt,
@@ -221,6 +229,7 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"id": {
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 						},
 						"num_shards": {
@@ -294,7 +303,8 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 			},
 			"paused": {
 				Type:     schema.TypeBool,
-				Computed: true,
+				Optional: true,
+				Default:  false,
 			},
 			"srv_address": {
 				Type:     schema.TypeString,
@@ -304,51 +314,7 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"advanced_configuration": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"fail_index_key_too_long": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Computed: true,
-						},
-						"javascript_enabled": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Computed: true,
-						},
-						"minimum_enabled_tls_protocol": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
-						"no_table_scan": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Computed: true,
-						},
-						"oplog_size_mb": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-						},
-						"sample_size_bi_connector": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-						},
-						"sample_refresh_interval_bi_connector": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-						},
-					},
-				},
-			},
+			"advanced_configuration": clusterAdvancedConfigurationSchema(),
 			"labels": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -379,6 +345,12 @@ func resourceMongoDBAtlasCluster() *schema.Resource {
 			"container_id": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"version_release_system": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "LTS",
+				ValidateFunc: validation.StringInSlice([]string{"LTS", "CONTINUOUS"}, false),
 			},
 		},
 	}
@@ -429,7 +401,7 @@ func resourceMongoDBAtlasClusterCreate(ctx context.Context, d *schema.ResourceDa
 
 	if providerName != "AWS" {
 		if _, ok := d.GetOk("provider_disk_iops"); ok {
-			return diag.FromErr(fmt.Errorf("`provider_disk_iops` shouldn't be set when provider name is `GCP` or `AZURE`"))
+			return diag.Errorf("`provider_disk_iops` shouldn't be set when provider name is `GCP` or `AZURE`")
 		}
 
 		if _, ok := d.GetOk("provider_volume_type"); ok {
@@ -451,13 +423,8 @@ func resourceMongoDBAtlasClusterCreate(ctx context.Context, d *schema.ResourceDa
 
 	tenantDisksize := pointy.Float64(0)
 	if providerName == "TENANT" {
-		if diskGBEnabled := d.Get("auto_scaling_disk_gb_enabled"); diskGBEnabled.(bool) {
-			return diag.FromErr(fmt.Errorf("`auto_scaling_disk_gb_enabled` cannot be true when provider name is TENANT"))
-		}
+		autoScaling = nil
 
-		autoScaling = &matlas.AutoScaling{
-			DiskGBEnabled: pointy.Bool(false),
-		}
 		if instanceSizeName, ok := d.GetOk("provider_instance_size_name"); ok {
 			if instanceSizeName == "M2" {
 				if diskSizeGB, ok := d.GetOk("disk_size_gb"); ok {
@@ -499,11 +466,26 @@ func resourceMongoDBAtlasClusterCreate(ctx context.Context, d *schema.ResourceDa
 		EncryptionAtRestProvider: d.Get("encryption_at_rest_provider").(string),
 		ClusterType:              cast.ToString(d.Get("cluster_type")),
 		BackupEnabled:            pointy.Bool(d.Get("backup_enabled").(bool)),
-		ProviderBackupEnabled:    pointy.Bool(d.Get("provider_backup_enabled").(bool)),
 		PitEnabled:               pointy.Bool(d.Get("pit_enabled").(bool)),
 		AutoScaling:              autoScaling,
 		ProviderSettings:         providerSettings,
 		ReplicationSpecs:         replicationSpecs,
+	}
+	if v, ok := d.GetOk("cloud_backup"); ok {
+		clusterRequest.ProviderBackupEnabled = pointy.Bool(v.(bool))
+	}
+
+	// Deprecated will remove later
+	if v, ok := d.GetOk("provider_backup_enabled"); ok {
+		clusterRequest.ProviderBackupEnabled = pointy.Bool(v.(bool))
+	}
+
+	if _, ok := d.GetOk("bi_connector"); ok {
+		biConnector, err := expandBiConnector(d)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterCreate, err))
+		}
+		clusterRequest.BiConnector = biConnector
 	}
 
 	if _, ok := d.GetOk("bi_connector"); ok {
@@ -546,6 +528,10 @@ func resourceMongoDBAtlasClusterCreate(ctx context.Context, d *schema.ResourceDa
 		clusterRequest.NumShards = pointy.Int64(cast.ToInt64(n))
 	}
 
+	if v, ok := d.GetOk("version_release_system"); ok {
+		clusterRequest.VersionReleaseSystem = v.(string)
+	}
+
 	cluster, _, err := conn.Clusters.Create(ctx, projectID, clusterRequest)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf(errorClusterCreate, err))
@@ -579,6 +565,18 @@ func resourceMongoDBAtlasClusterCreate(ctx context.Context, d *schema.ResourceDa
 			if err != nil {
 				return diag.FromErr(fmt.Errorf(errorAdvancedConfUpdate, cluster.Name, err))
 			}
+		}
+	}
+
+	// To pause a cluster
+	if v := d.Get("paused").(bool); v {
+		clusterRequest = &matlas.Cluster{
+			Paused: pointy.Bool(v),
+		}
+
+		_, _, err = updateCluster(ctx, conn, clusterRequest, projectID, d.Get("name").(string))
+		if err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterUpdate, d.Get("name").(string), err))
 		}
 	}
 
@@ -616,10 +614,6 @@ func resourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(fmt.Errorf(errorClusterSetting, "cluster_id", clusterName, err))
 	}
 
-	if err := d.Set("auto_scaling_disk_gb_enabled", cluster.AutoScaling.DiskGBEnabled); err != nil {
-		return diag.FromErr(fmt.Errorf(errorClusterSetting, "auto_scaling_disk_gb_enabled", clusterName, err))
-	}
-
 	if err := d.Set("auto_scaling_compute_enabled", cluster.AutoScaling.Compute.Enabled); err != nil {
 		return diag.FromErr(fmt.Errorf(errorClusterSetting, "auto_scaling_compute_enabled", clusterName, err))
 	}
@@ -640,8 +634,16 @@ func resourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(fmt.Errorf(errorClusterSetting, "backup_enabled", clusterName, err))
 	}
 
-	if err := d.Set("provider_backup_enabled", cluster.ProviderBackupEnabled); err != nil {
-		return diag.FromErr(fmt.Errorf(errorClusterSetting, "provider_backup_enabled", clusterName, err))
+	if _, ok := d.GetOk("provider_backup_enabled"); ok {
+		if err := d.Set("provider_backup_enabled", cluster.ProviderBackupEnabled); err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterSetting, "provider_backup_enabled", clusterName, err))
+		}
+	}
+
+	if _, ok := d.GetOk("cloud_backup"); ok {
+		if err := d.Set("cloud_backup", cluster.ProviderBackupEnabled); err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterSetting, "cloud_backup", clusterName, err))
+		}
 	}
 
 	if err := d.Set("cluster_type", cluster.ClusterType); err != nil {
@@ -729,6 +731,10 @@ func resourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(fmt.Errorf(errorClusterSetting, "labels", clusterName, err))
 	}
 
+	if err := d.Set("version_release_system", cluster.VersionReleaseSystem); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "version_release_system", clusterName, err))
+	}
+
 	if providerName != "TENANT" {
 		containers, _, err := conn.Containers.List(ctx, projectID,
 			&matlas.ContainersListOptions{ProviderName: providerName})
@@ -738,6 +744,10 @@ func resourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceData
 
 		if err := d.Set("container_id", getContainerID(containers, cluster)); err != nil {
 			return diag.FromErr(fmt.Errorf(errorClusterSetting, "container_id", clusterName, err))
+		}
+
+		if err := d.Set("auto_scaling_disk_gb_enabled", cluster.AutoScaling.DiskGBEnabled); err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterSetting, "auto_scaling_disk_gb_enabled", clusterName, err))
 		}
 	}
 
@@ -847,8 +857,13 @@ func resourceMongoDBAtlasClusterUpdate(ctx context.Context, d *schema.ResourceDa
 		cluster.DiskSizeGB = pointy.Float64(d.Get("disk_size_gb").(float64))
 	}
 
+	// Deprecated will remove later
 	if d.HasChange("provider_backup_enabled") {
 		cluster.ProviderBackupEnabled = pointy.Bool(d.Get("provider_backup_enabled").(bool))
+	}
+
+	if d.HasChange("cloud_backup") {
+		cluster.ProviderBackupEnabled = pointy.Bool(d.Get("cloud_backup").(bool))
 	}
 
 	if d.HasChange("pit_enabled") {
@@ -863,6 +878,10 @@ func resourceMongoDBAtlasClusterUpdate(ctx context.Context, d *schema.ResourceDa
 		cluster.NumShards = pointy.Int64(cast.ToInt64(d.Get("num_shards")))
 	}
 
+	if d.HasChange("version_release_system") {
+		cluster.VersionReleaseSystem = d.Get("version_release_system").(string)
+	}
+
 	if d.HasChange("labels") {
 		if containsLabelOrKey(expandLabelSliceFromSetSchema(d), defaultLabel) {
 			return diag.FromErr(fmt.Errorf("you should not set `Infrastructure Tool` label, it is used for internal purposes"))
@@ -873,30 +892,35 @@ func resourceMongoDBAtlasClusterUpdate(ctx context.Context, d *schema.ResourceDa
 
 	// when Provider instance type changes this argument must be passed explicitly in patch request
 	if d.HasChange("provider_instance_size_name") {
-		cluster.ProviderBackupEnabled = pointy.Bool(d.Get("provider_backup_enabled").(bool))
+		if _, ok := d.GetOk("provider_backup_enabled"); ok {
+			cluster.ProviderBackupEnabled = pointy.Bool(d.Get("provider_backup_enabled").(bool))
+		}
+		if _, ok := d.GetOk("cloud_backup"); ok {
+			cluster.ProviderBackupEnabled = pointy.Bool(d.Get("cloud_backup").(bool))
+		}
 	}
 
 	// Has changes
 	if !reflect.DeepEqual(cluster, matlas.Cluster{}) {
-		_, _, err := conn.Clusters.Update(ctx, projectID, clusterName, cluster)
+		err := resource.RetryContext(ctx, 3*time.Hour, func() *resource.RetryError {
+			_, _, err := updateCluster(ctx, conn, cluster, projectID, clusterName)
+			if err != nil {
+				var target *matlas.ErrorResponse
+				if errors.As(err, &target) && target.ErrorCode == "CANNOT_UPDATE_PAUSED_CLUSTER" {
+					clusterRequest := &matlas.Cluster{
+						Paused: pointy.Bool(false),
+					}
+					_, _, err := updateCluster(ctx, conn, clusterRequest, projectID, clusterName)
+					if err != nil {
+						return resource.NonRetryableError(fmt.Errorf(errorClusterUpdate, clusterName, err))
+					}
+				}
+			}
+			return nil
+		})
 		if err != nil {
 			return diag.FromErr(fmt.Errorf(errorClusterUpdate, clusterName, err))
 		}
-	}
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"CREATING", "UPDATING", "REPAIRING"},
-		Target:     []string{"IDLE"},
-		Refresh:    resourceClusterRefreshFunc(ctx, clusterName, projectID, conn),
-		Timeout:    3 * time.Hour,
-		MinTimeout: 30 * time.Second,
-		Delay:      1 * time.Minute,
-	}
-
-	// Wait, catching any errors
-	_, err := stateConf.WaitForStateContext(ctx)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf(errorClusterUpdate, clusterName, err))
 	}
 
 	/*
@@ -912,6 +936,17 @@ func resourceMongoDBAtlasClusterUpdate(ctx context.Context, d *schema.ResourceDa
 					return diag.FromErr(fmt.Errorf(errorAdvancedConfUpdate, clusterName, err))
 				}
 			}
+		}
+	}
+
+	if d.Get("paused").(bool) {
+		clusterRequest := &matlas.Cluster{
+			Paused: pointy.Bool(true),
+		}
+
+		_, _, err := updateCluster(ctx, conn, clusterRequest, projectID, clusterName)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterUpdate, clusterName, err))
 		}
 	}
 
@@ -1111,11 +1146,12 @@ func expandProviderSetting(d *schema.ResourceData) (*matlas.ProviderSettings, er
 	}
 
 	if d.Get("provider_name") == "AWS" {
-		// Check if the Provider Disk IOS sets in the Terraform configuration.
+		// Check if the Provider Disk IOS sets in the Terraform configuration and if the instance size name is not NVME.
 		// If it didn't, the MongoDB Atlas server would set it to the default for the amount of storage.
-		if v, ok := d.GetOk("provider_disk_iops"); ok {
+		if v, ok := d.GetOk("provider_disk_iops"); ok && !strings.Contains(providerSettings.InstanceSizeName, "NVME") {
 			providerSettings.DiskIOPS = pointy.Int64(cast.ToInt64(v))
 		}
+
 		providerSettings.EncryptEBSVolume = pointy.Bool(true)
 	}
 
@@ -1172,6 +1208,7 @@ func expandReplicationSpecs(d *schema.ResourceData) ([]matlas.ReplicationSpec, e
 
 			replaceRegion := ""
 			originalRegion := ""
+			id := ""
 
 			if okPRName && d.Get("provider_name").(string) == "GCP" && cast.ToString(d.Get("cluster_type")) == "REPLICASET" {
 				if d.HasChange("provider_region_name") {
@@ -1181,13 +1218,29 @@ func expandReplicationSpecs(d *schema.ResourceData) ([]matlas.ReplicationSpec, e
 				}
 			}
 
+			if d.HasChange("replication_specs") {
+				// Get original and new object
+				var oldSpecs map[string]interface{}
+				original, _ := d.GetChange("replication_specs")
+				for _, s := range original.(*schema.Set).List() {
+					oldSpecs = s.(map[string]interface{})
+					if spec["zone_name"].(string) == cast.ToString(oldSpecs["zone_name"]) {
+						id = oldSpecs["id"].(string)
+						break
+					}
+				}
+				if id == "" && oldSpecs != nil {
+					id = oldSpecs["id"].(string)
+				}
+			}
+
 			regionsConfig, err := expandRegionsConfig(spec["regions_config"].(*schema.Set).List(), originalRegion, replaceRegion)
 			if err != nil {
 				return rSpecs, err
 			}
 
 			rSpec := matlas.ReplicationSpec{
-				ID:            cast.ToString(spec["id"]),
+				ID:            id,
 				NumShards:     pointy.Int64(cast.ToInt64(spec["num_shards"])),
 				ZoneName:      cast.ToString(spec["zone_name"]),
 				RegionsConfig: regionsConfig,
@@ -1264,6 +1317,14 @@ func flattenRegionsConfig(regionsConfig map[string]matlas.RegionsConfig) []map[s
 func expandProcessArgs(d *schema.ResourceData, p map[string]interface{}) *matlas.ProcessArgs {
 	res := &matlas.ProcessArgs{}
 
+	if _, ok := d.GetOkExists("advanced_configuration.0.default_read_concern"); ok {
+		res.DefaultReadConcern = cast.ToString(p["default_read_concern"])
+	}
+
+	if _, ok := d.GetOkExists("advanced_configuration.0.default_write_concern"); ok {
+		res.DefaultWriteConcern = cast.ToString(p["default_write_concern"])
+	}
+
 	if _, ok := d.GetOkExists("advanced_configuration.0.fail_index_key_too_long"); ok {
 		res.FailIndexKeyTooLong = pointy.Bool(cast.ToBool(p["fail_index_key_too_long"]))
 	}
@@ -1302,6 +1363,8 @@ func expandProcessArgs(d *schema.ResourceData, p map[string]interface{}) *matlas
 func flattenProcessArgs(p *matlas.ProcessArgs) []interface{} {
 	return []interface{}{
 		map[string]interface{}{
+			"default_read_concern":                 p.DefaultReadConcern,
+			"default_write_concern":                p.DefaultWriteConcern,
 			"fail_index_key_too_long":              cast.ToBool(p.FailIndexKeyTooLong),
 			"javascript_enabled":                   cast.ToBool(p.JavascriptEnabled),
 			"minimum_enabled_tls_protocol":         p.MinimumEnabledTLSProtocol,
@@ -1483,4 +1546,112 @@ func clusterConnectionStringsSchema() *schema.Schema {
 			},
 		},
 	}
+}
+
+func isEqualProviderAutoScalingMinInstanceSize(k, old, newStr string, d *schema.ResourceData) bool {
+	canScaleDown, scaleDownOK := d.GetOk("auto_scaling_compute_scale_down_enabled")
+	canScaleUp, scaleUpOk := d.GetOk("auto_scaling_compute_enabled")
+
+	if !scaleDownOK || !scaleUpOk {
+		return true // if the return is true, it means that both values are the same and there's nothing to do
+	}
+
+	if canScaleUp.(bool) && canScaleDown.(bool) {
+		if old != newStr {
+			return false
+		}
+	}
+	return true
+}
+
+func isEqualProviderAutoScalingMaxInstanceSize(k, old, newStr string, d *schema.ResourceData) bool {
+	canScaleUp, _ := d.GetOk("auto_scaling_compute_enabled")
+	if canScaleUp != nil && canScaleUp.(bool) {
+		if old != newStr {
+			return false
+		}
+	}
+	return true
+}
+
+func clusterAdvancedConfigurationSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Computed: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"default_read_concern": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Computed: true,
+				},
+				"default_write_concern": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Computed: true,
+				},
+				"fail_index_key_too_long": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Computed: true,
+				},
+				"javascript_enabled": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Computed: true,
+				},
+				"minimum_enabled_tls_protocol": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Computed: true,
+				},
+				"no_table_scan": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Computed: true,
+				},
+				"oplog_size_mb": {
+					Type:     schema.TypeInt,
+					Optional: true,
+					Computed: true,
+				},
+				"sample_size_bi_connector": {
+					Type:     schema.TypeInt,
+					Optional: true,
+					Computed: true,
+				},
+				"sample_refresh_interval_bi_connector": {
+					Type:     schema.TypeInt,
+					Optional: true,
+					Computed: true,
+				},
+			},
+		},
+	}
+}
+
+func updateCluster(ctx context.Context, conn *matlas.Client, request *matlas.Cluster, projectID, name string) (*matlas.Cluster, *matlas.Response, error) {
+	cluster, resp, err := conn.Clusters.Update(ctx, projectID, name, request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"CREATING", "UPDATING", "REPAIRING"},
+		Target:     []string{"IDLE"},
+		Refresh:    resourceClusterRefreshFunc(ctx, name, projectID, conn),
+		Timeout:    3 * time.Hour,
+		MinTimeout: 30 * time.Second,
+		Delay:      1 * time.Minute,
+	}
+
+	// Wait, catching any errors
+	_, err = stateConf.WaitForStateContext(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cluster, resp, nil
 }

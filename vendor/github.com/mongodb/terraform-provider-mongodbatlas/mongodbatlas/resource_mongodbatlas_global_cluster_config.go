@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
+	"github.com/mwielbut/pointy"
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -59,13 +60,22 @@ func resourceMongoDBAtlasGlobalCluster() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+						"is_custom_shard_key_hashed": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"is_shard_key_unique": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
 					},
 				},
 			},
 			"custom_zone_mappings": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"location": {
@@ -99,15 +109,35 @@ func resourceMongoDBAtlasGlobalClusterCreate(ctx context.Context, d *schema.Reso
 		for _, m := range v.(*schema.Set).List() {
 			mn := m.(map[string]interface{})
 
-			log.Printf("[DEBUG] managed namespaces %+v", mn)
-
 			addManagedNamespace := &matlas.ManagedNamespace{
 				Collection:     mn["collection"].(string),
 				Db:             mn["db"].(string),
 				CustomShardKey: mn["custom_shard_key"].(string),
 			}
-			_, _, err := conn.GlobalClusters.AddManagedNamespace(ctx, projectID, clusterName, addManagedNamespace)
 
+			if isCustomShardKeyHashed, okCustomShard := mn["is_custom_shard_key_hashed"]; okCustomShard {
+				addManagedNamespace.IsCustomShardKeyHashed = pointy.Bool(isCustomShardKeyHashed.(bool))
+			}
+
+			if isShardKeyUnique, okShard := mn["is_shard_key_unique"]; okShard {
+				addManagedNamespace.IsShardKeyUnique = pointy.Bool(isShardKeyUnique.(bool))
+			}
+
+			err := resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+				_, _, err := conn.GlobalClusters.AddManagedNamespace(ctx, projectID, clusterName, addManagedNamespace)
+				if err != nil {
+					var target *matlas.ErrorResponse
+					if errors.As(err, &target) && target.ErrorCode == "DUPLICATE_MANAGED_NAMESPACE" {
+						if err := removeManagedNamespaces(ctx, conn, v.(*schema.Set).List(), projectID, clusterName); err != nil {
+							return resource.NonRetryableError(fmt.Errorf(errorGlobalClusterCreate, err))
+						}
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(fmt.Errorf(errorGlobalClusterCreate, err))
+				}
+
+				return nil
+			})
 			if err != nil {
 				return diag.FromErr(fmt.Errorf(errorGlobalClusterCreate, err))
 			}
@@ -115,29 +145,17 @@ func resourceMongoDBAtlasGlobalClusterCreate(ctx context.Context, d *schema.Reso
 	}
 
 	if v, ok := d.GetOk("custom_zone_mappings"); ok {
-		var customZoneMappings []matlas.CustomZoneMapping
+		_, _, err := conn.GlobalClusters.AddCustomZoneMappings(ctx, projectID, clusterName, &matlas.CustomZoneMappingsRequest{
+			CustomZoneMappings: newCustomZoneMappings(v.(*schema.Set).List()),
+		})
 
-		for _, czms := range v.(*schema.Set).List() {
-			cz := czms.(map[string]interface{})
-
-			log.Printf("[DEBUG] custom zone mappings %+v", cz)
-
-			customZoneMapping := matlas.CustomZoneMapping{
-				Location: cz["location"].(string),
-				Zone:     cz["zone"].(string),
+		if err != nil {
+			if v2, ok2 := d.GetOk("managed_namespaces"); ok2 {
+				if err := removeManagedNamespaces(ctx, conn, v2.(*schema.Set).List(), projectID, clusterName); err != nil {
+					return diag.FromErr(fmt.Errorf(errorGlobalClusterCreate, err))
+				}
 			}
-
-			customZoneMappings = append(customZoneMappings, customZoneMapping)
-		}
-
-		if len(customZoneMappings) > 0 {
-			_, _, err := conn.GlobalClusters.AddCustomZoneMappings(ctx, projectID, clusterName, &matlas.CustomZoneMappingsRequest{
-				CustomZoneMappings: customZoneMappings,
-			})
-
-			if err != nil {
-				return diag.FromErr(fmt.Errorf(errorGlobalClusterCreate, err))
-			}
+			return diag.FromErr(fmt.Errorf(errorGlobalClusterCreate, err))
 		}
 	}
 
@@ -148,6 +166,7 @@ func resourceMongoDBAtlasGlobalClusterCreate(ctx context.Context, d *schema.Reso
 
 	return resourceMongoDBAtlasGlobalClusterRead(ctx, d, meta)
 }
+
 func resourceMongoDBAtlasGlobalClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// Get client connection.
 	conn := meta.(*MongoDBClient).Atlas
@@ -191,14 +210,44 @@ func resourceMongoDBAtlasGlobalClusterUpdate(ctx context.Context, d *schema.Reso
 		remove := oldSet.Difference(newSet).List()
 		add := newSet.Difference(oldSet).List()
 
+		if len(remove) > 0 {
+			if err := removeManagedNamespaces(ctx, conn, remove, projectID, clusterName); err != nil {
+				return diag.FromErr(fmt.Errorf(errorGlobalClusterUpdate, clusterName, err))
+			}
+		}
+
 		if len(add) > 0 {
 			if err := addManagedNamespaces(ctx, conn, add, projectID, clusterName); err != nil {
 				return diag.FromErr(fmt.Errorf(errorGlobalClusterUpdate, clusterName, err))
 			}
 		}
+	}
+
+	if d.HasChange("custom_zone_mappings") {
+		old, newMN := d.GetChange("custom_zone_mappings")
+		oldSet := old.(*schema.Set)
+		newSet := newMN.(*schema.Set)
+
+		remove := oldSet.Difference(newSet).List()
+		add := newSet.Difference(oldSet).List()
 
 		if len(remove) > 0 {
-			if err := removeManagedNamespaces(ctx, conn, remove, projectID, clusterName); err != nil {
+			if _, _, err := conn.GlobalClusters.DeleteCustomZoneMappings(ctx, projectID, clusterName); err != nil {
+				return diag.FromErr(fmt.Errorf(errorGlobalClusterUpdate, clusterName, err))
+			}
+			if v, ok := d.GetOk("custom_zone_mappings"); ok {
+				if _, _, err := conn.GlobalClusters.AddCustomZoneMappings(ctx, projectID, clusterName, &matlas.CustomZoneMappingsRequest{
+					CustomZoneMappings: newCustomZoneMappings(v.(*schema.Set).List()),
+				}); err != nil {
+					return diag.FromErr(fmt.Errorf(errorGlobalClusterUpdate, clusterName, err))
+				}
+			}
+		}
+
+		if len(add) > 0 {
+			if _, _, err := conn.GlobalClusters.AddCustomZoneMappings(ctx, projectID, clusterName, &matlas.CustomZoneMappingsRequest{
+				CustomZoneMappings: newCustomZoneMappings(add),
+			}); err != nil {
 				return diag.FromErr(fmt.Errorf(errorGlobalClusterUpdate, clusterName, err))
 			}
 		}
@@ -239,9 +288,11 @@ func flattenManagedNamespaces(managedNamespaces []matlas.ManagedNamespace) []map
 
 		for k, managedNamespace := range managedNamespaces {
 			results[k] = map[string]interface{}{
-				"db":               managedNamespace.Db,
-				"collection":       managedNamespace.Collection,
-				"custom_shard_key": managedNamespace.CustomShardKey,
+				"db":                         managedNamespace.Db,
+				"collection":                 managedNamespace.Collection,
+				"custom_shard_key":           managedNamespace.CustomShardKey,
+				"is_custom_shard_key_hashed": *managedNamespace.IsCustomShardKeyHashed,
+				"is_shard_key_unique":        *managedNamespace.IsShardKeyUnique,
 			}
 		}
 	}
@@ -282,6 +333,14 @@ func removeManagedNamespaces(ctx context.Context, conn *matlas.Client, remove []
 			Db:             mn["db"].(string),
 			CustomShardKey: mn["custom_shard_key"].(string),
 		}
+
+		if isCustomShardKeyHashed, okCustomShard := mn["is_custom_shard_key_hashed"]; okCustomShard {
+			addManagedNamespace.IsCustomShardKeyHashed = pointy.Bool(isCustomShardKeyHashed.(bool))
+		}
+
+		if isShardKeyUnique, okShard := mn["is_shard_key_unique"]; okShard {
+			addManagedNamespace.IsShardKeyUnique = pointy.Bool(isShardKeyUnique.(bool))
+		}
 		_, _, err := conn.GlobalClusters.DeleteManagedNamespace(ctx, projectID, clusterName, addManagedNamespace)
 
 		if err != nil {
@@ -301,6 +360,14 @@ func addManagedNamespaces(ctx context.Context, conn *matlas.Client, add []interf
 			Db:             mn["db"].(string),
 			CustomShardKey: mn["custom_shard_key"].(string),
 		}
+
+		if isCustomShardKeyHashed, okCustomShard := mn["is_custom_shard_key_hashed"]; okCustomShard {
+			addManagedNamespace.IsCustomShardKeyHashed = pointy.Bool(isCustomShardKeyHashed.(bool))
+		}
+
+		if isShardKeyUnique, okShard := mn["is_shard_key_unique"]; okShard {
+			addManagedNamespace.IsShardKeyUnique = pointy.Bool(isShardKeyUnique.(bool))
+		}
 		_, _, err := conn.GlobalClusters.AddManagedNamespace(ctx, projectID, clusterName, addManagedNamespace)
 
 		if err != nil {
@@ -309,4 +376,38 @@ func addManagedNamespaces(ctx context.Context, conn *matlas.Client, add []interf
 	}
 
 	return nil
+}
+
+func newCustomZoneMapping(tfMap map[string]interface{}) *matlas.CustomZoneMapping {
+	if tfMap == nil {
+		return nil
+	}
+
+	apiObject := &matlas.CustomZoneMapping{
+		Location: tfMap["location"].(string),
+		Zone:     tfMap["zone"].(string),
+	}
+
+	return apiObject
+}
+
+func newCustomZoneMappings(tfList []interface{}) []matlas.CustomZoneMapping {
+	if len(tfList) == 0 {
+		return nil
+	}
+
+	apiObjects := make([]matlas.CustomZoneMapping, len(tfList))
+	if len(tfList) > 0 {
+		for i, tfMapRaw := range tfList {
+			if tfMap, ok := tfMapRaw.(map[string]interface{}); ok {
+				apiObject := newCustomZoneMapping(tfMap)
+				if apiObject == nil {
+					continue
+				}
+				apiObjects[i] = *apiObject
+			}
+		}
+	}
+
+	return apiObjects
 }

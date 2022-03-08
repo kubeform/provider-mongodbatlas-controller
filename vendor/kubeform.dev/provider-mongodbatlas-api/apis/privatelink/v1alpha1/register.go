@@ -60,6 +60,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&EndpointList{},
 		&EndpointService{},
 		&EndpointServiceList{},
+		&EndpointServiceAdl{},
+		&EndpointServiceAdlList{},
 	)
 
 	scheme.AddKnownTypes(SchemeGroupVersion,

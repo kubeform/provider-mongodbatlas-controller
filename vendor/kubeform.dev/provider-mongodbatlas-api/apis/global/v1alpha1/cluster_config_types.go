@@ -52,6 +52,10 @@ type ClusterConfigSpecManagedNamespaces struct {
 	Collection     *string `json:"collection" tf:"collection"`
 	CustomShardKey *string `json:"customShardKey" tf:"custom_shard_key"`
 	Db             *string `json:"db" tf:"db"`
+	// +optional
+	IsCustomShardKeyHashed *bool `json:"isCustomShardKeyHashed,omitempty" tf:"is_custom_shard_key_hashed"`
+	// +optional
+	IsShardKeyUnique *bool `json:"isShardKeyUnique,omitempty" tf:"is_shard_key_unique"`
 }
 
 type ClusterConfigSpec struct {

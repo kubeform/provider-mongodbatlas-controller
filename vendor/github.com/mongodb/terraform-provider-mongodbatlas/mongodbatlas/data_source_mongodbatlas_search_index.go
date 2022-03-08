@@ -33,9 +33,9 @@ func returnSearchIndexDSSchema() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"analyzers": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem:     customAnalyzersSchema(),
+			Type:             schema.TypeString,
+			Optional:         true,
+			DiffSuppressFunc: validateSearchAnalyzersDiff,
 		},
 		"collection_name": {
 			Type:     schema.TypeString,
@@ -61,6 +61,26 @@ func returnSearchIndexDSSchema() map[string]*schema.Schema {
 			Type:             schema.TypeString,
 			Optional:         true,
 			DiffSuppressFunc: validateSearchIndexMappingDiff,
+		},
+		"synonyms": {
+			Type:     schema.TypeSet,
+			Computed: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"analyzer": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+					"name": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+					"source_collection": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+				},
+			},
 		},
 		"status": {
 			Type:     schema.TypeString,
@@ -95,13 +115,15 @@ func dataSourceMongoDBAtlasSearchIndexRead(ctx context.Context, d *schema.Resour
 		return diag.Errorf("error setting `analyzer` for search index (%s): %s", d.Id(), err)
 	}
 
-	searchIndexCustomAnalyzers, err := flattenSearchIndexCustomAnalyzers(searchIndex.Analyzers)
-	if err != nil {
-		return nil
-	}
+	if len(searchIndex.Analyzers) > 0 {
+		searchIndexMappingFields, err := marshallSearchIndexAnalyzers(searchIndex.Analyzers)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 
-	if err := d.Set("analyzers", searchIndexCustomAnalyzers); err != nil {
-		return diag.Errorf("error setting `analyzer` for search index (%s): %s", d.Id(), err)
+		if err := d.Set("analyzers", searchIndexMappingFields); err != nil {
+			return diag.Errorf("error setting `analyzer` for search index (%s): %s", d.Id(), err)
+		}
 	}
 
 	if err := d.Set("collection_name", searchIndex.CollectionName); err != nil {
@@ -124,8 +146,12 @@ func dataSourceMongoDBAtlasSearchIndexRead(ctx context.Context, d *schema.Resour
 		return diag.Errorf("error setting `mappings_dynamic` for search index (%s): %s", d.Id(), err)
 	}
 
+	if err := d.Set("synonyms", flattenSearchIndexSynonyms(searchIndex.Synonyms)); err != nil {
+		return diag.Errorf("error setting `synonyms` for search index (%s): %s", d.Id(), err)
+	}
+
 	if searchIndex.Mappings.Fields != nil {
-		searchIndexMappingFields, err := marshallSearchIndexMappingFields(*searchIndex.Mappings.Fields)
+		searchIndexMappingFields, err := marshallSearchIndexMappingsField(*searchIndex.Mappings.Fields)
 		if err != nil {
 			return diag.FromErr(err)
 		}
