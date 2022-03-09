@@ -34,6 +34,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.9.0
 )
 
+replace github.com/spf13/afero => github.com/spf13/afero v1.2.2
+
 replace github.com/json-iterator/go => github.com/gomodules/json-iterator v1.1.12-0.20210506053207-2a3ea71074bc
 
 replace bitbucket.org/ww/goautoneg => gomodules.xyz/goautoneg v0.0.0-20120707110453-a547fc61f48d
