@@ -90,7 +90,7 @@ func (r *AuthenticationDatabaseUser) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range authenticationdatabaseuserForceNewList {
+	for key, _ := range authenticationdatabaseuserForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

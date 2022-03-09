@@ -19,6 +19,7 @@ limitations under the License.
 package scheme
 
 import (
+	advancedv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/advanced/v1alpha1"
 	alertv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/alert/v1alpha1"
 	auditingv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/auditing/v1alpha1"
 	cloudv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/cloud/v1alpha1"
@@ -33,6 +34,7 @@ import (
 	maintenancev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/maintenance/v1alpha1"
 	networkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/network/v1alpha1"
 	onlinev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/online/v1alpha1"
+	orgv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/org/v1alpha1"
 	privatev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/private/v1alpha1"
 	privatelinkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/privatelink/v1alpha1"
 	projectv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/project/v1alpha1"
@@ -53,6 +55,7 @@ var Scheme = runtime.NewScheme()
 var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
+	advancedv1alpha1.AddToScheme,
 	alertv1alpha1.AddToScheme,
 	auditingv1alpha1.AddToScheme,
 	cloudv1alpha1.AddToScheme,
@@ -67,6 +70,7 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 	maintenancev1alpha1.AddToScheme,
 	networkv1alpha1.AddToScheme,
 	onlinev1alpha1.AddToScheme,
+	orgv1alpha1.AddToScheme,
 	privatev1alpha1.AddToScheme,
 	privatelinkv1alpha1.AddToScheme,
 	projectv1alpha1.AddToScheme,

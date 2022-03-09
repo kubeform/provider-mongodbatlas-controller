@@ -94,7 +94,7 @@ func (r *Verify) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range verifyForceNewList {
+	for key, _ := range verifyForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

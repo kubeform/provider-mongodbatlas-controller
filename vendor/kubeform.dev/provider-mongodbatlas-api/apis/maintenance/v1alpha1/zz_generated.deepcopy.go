@@ -124,6 +124,11 @@ func (in *WindowSpecResource) DeepCopyInto(out *WindowSpecResource) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.AutoDeferOnceEnabled != nil {
+		in, out := &in.AutoDeferOnceEnabled, &out.AutoDeferOnceEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.DayOfWeek != nil {
 		in, out := &in.DayOfWeek, &out.DayOfWeek
 		*out = new(int64)

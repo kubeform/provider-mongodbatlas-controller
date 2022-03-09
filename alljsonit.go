@@ -21,6 +21,7 @@ package main
 import (
 	jsoniter "github.com/json-iterator/go"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	advancedv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/advanced/v1alpha1"
 	alertv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/alert/v1alpha1"
 	auditingv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/auditing/v1alpha1"
 	cloudv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/cloud/v1alpha1"
@@ -35,6 +36,7 @@ import (
 	maintenancev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/maintenance/v1alpha1"
 	networkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/network/v1alpha1"
 	onlinev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/online/v1alpha1"
+	orgv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/org/v1alpha1"
 	privatev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/private/v1alpha1"
 	privatelinkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/privatelink/v1alpha1"
 	projectv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/project/v1alpha1"
@@ -53,6 +55,14 @@ type Data struct {
 
 var allJsonIt = map[schema.GroupVersionResource]Data{
 	{
+		Group:    "advanced.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "clusters",
+	}: {
+		JsonIt:       controllers.GetJSONItr(advancedv1alpha1.GetEncoder(), advancedv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_advanced_cluster",
+	},
+	{
 		Group:    "alert.mongodbatlas.kubeform.com",
 		Version:  "v1alpha1",
 		Resource: "configurations",
@@ -67,6 +77,46 @@ var allJsonIt = map[schema.GroupVersionResource]Data{
 	}: {
 		JsonIt:       controllers.GetJSONItr(auditingv1alpha1.GetEncoder(), auditingv1alpha1.GetDecoder()),
 		ResourceType: "mongodbatlas_auditing",
+	},
+	{
+		Group:    "cloud.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "backupschedules",
+	}: {
+		JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_cloud_backup_schedule",
+	},
+	{
+		Group:    "cloud.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "backupsnapshots",
+	}: {
+		JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_cloud_backup_snapshot",
+	},
+	{
+		Group:    "cloud.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "backupsnapshotexportbuckets",
+	}: {
+		JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_cloud_backup_snapshot_export_bucket",
+	},
+	{
+		Group:    "cloud.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "backupsnapshotexportjobs",
+	}: {
+		JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_cloud_backup_snapshot_export_job",
+	},
+	{
+		Group:    "cloud.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "backupsnapshotrestorejobs",
+	}: {
+		JsonIt:       controllers.GetJSONItr(cloudv1alpha1.GetEncoder(), cloudv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_cloud_backup_snapshot_restore_job",
 	},
 	{
 		Group:    "cloud.mongodbatlas.kubeform.com",
@@ -229,6 +279,14 @@ var allJsonIt = map[schema.GroupVersionResource]Data{
 		ResourceType: "mongodbatlas_online_archive",
 	},
 	{
+		Group:    "org.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "invitations",
+	}: {
+		JsonIt:       controllers.GetJSONItr(orgv1alpha1.GetEncoder(), orgv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_org_invitation",
+	},
+	{
 		Group:    "private.mongodbatlas.kubeform.com",
 		Version:  "v1alpha1",
 		Resource: "ipmodes",
@@ -253,12 +311,28 @@ var allJsonIt = map[schema.GroupVersionResource]Data{
 		ResourceType: "mongodbatlas_privatelink_endpoint_service",
 	},
 	{
+		Group:    "privatelink.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "endpointserviceadls",
+	}: {
+		JsonIt:       controllers.GetJSONItr(privatelinkv1alpha1.GetEncoder(), privatelinkv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_privatelink_endpoint_service_adl",
+	},
+	{
 		Group:    "project.mongodbatlas.kubeform.com",
 		Version:  "v1alpha1",
 		Resource: "projects",
 	}: {
 		JsonIt:       controllers.GetJSONItr(projectv1alpha1.GetEncoder(), projectv1alpha1.GetDecoder()),
 		ResourceType: "mongodbatlas_project",
+	},
+	{
+		Group:    "project.mongodbatlas.kubeform.com",
+		Version:  "v1alpha1",
+		Resource: "invitations",
+	}: {
+		JsonIt:       controllers.GetJSONItr(projectv1alpha1.GetEncoder(), projectv1alpha1.GetDecoder()),
+		ResourceType: "mongodbatlas_project_invitation",
 	},
 	{
 		Group:    "project.mongodbatlas.kubeform.com",

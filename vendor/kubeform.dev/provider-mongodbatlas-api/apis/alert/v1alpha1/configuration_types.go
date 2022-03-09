@@ -101,6 +101,8 @@ type ConfigurationSpecNotification struct {
 	// +optional
 	TeamID *string `json:"teamID,omitempty" tf:"team_id"`
 	// +optional
+	TeamName *string `json:"teamName,omitempty" tf:"team_name"`
+	// +optional
 	TypeName *string `json:"typeName,omitempty" tf:"type_name"`
 	// +optional
 	Username *string `json:"username,omitempty" tf:"username"`

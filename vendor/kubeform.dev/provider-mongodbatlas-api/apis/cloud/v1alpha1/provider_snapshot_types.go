@@ -79,6 +79,8 @@ type ProviderSnapshotSpecResource struct {
 	// +optional
 	StorageSizeBytes *int64 `json:"storageSizeBytes,omitempty" tf:"storage_size_bytes"`
 	// +optional
+	Timeout *string `json:"timeout,omitempty" tf:"timeout"`
+	// +optional
 	Type *string `json:"type,omitempty" tf:"type"`
 }
 

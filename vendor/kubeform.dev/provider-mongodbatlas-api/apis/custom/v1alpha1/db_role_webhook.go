@@ -89,7 +89,7 @@ func (r *DbRole) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range dbroleForceNewList {
+	for key, _ := range dbroleForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

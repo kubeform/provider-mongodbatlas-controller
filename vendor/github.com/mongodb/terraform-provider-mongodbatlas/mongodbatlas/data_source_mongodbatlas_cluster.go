@@ -3,14 +3,10 @@ package mongodbatlas
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/spf13/cast"
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -26,6 +22,7 @@ func dataSourceMongoDBAtlasCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"advanced_configuration": clusterAdvancedConfigurationSchemaComputed(),
 			"auto_scaling_disk_gb_enabled": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -311,6 +308,10 @@ func dataSourceMongoDBAtlasCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"version_release_system": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -330,23 +331,20 @@ func dataSourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(fmt.Errorf(errorClusterRead, clusterName, err))
 	}
 
-	if cluster.ProviderSettings != nil && (cast.ToString(cluster.ProviderSettings.ProviderName) == "AWS" ||
-		cast.ToString(cluster.ProviderSettings.ProviderName) == "AZURE") {
-		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"PRIVATE_ENDPOINTS_NIL", "PRIVATE_ENDPOINTS_EMPTY"},
-			Target:     []string{"PRIVATE_ENDPOINTS_EXISTS", "NORMAL"},
-			Refresh:    datasourceClusterPrivateEndpointRefreshFunc(clusterName, projectID, conn),
-			Timeout:    10 * time.Minute,
-			MinTimeout: 1 * time.Minute,
-			Delay:      3 * time.Minute,
-		}
+	if err := d.Set("auto_scaling_compute_enabled", cluster.AutoScaling.Compute.Enabled); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "auto_scaling_compute_enabled", clusterName, err))
+	}
 
-		resp, err := stateConf.WaitForStateContext(ctx)
-		if err != nil {
-			log.Printf("[ERROR] %v", fmt.Errorf(errorClusterRead, clusterName, err))
-		} else {
-			cluster = resp.(*matlas.Cluster)
-		}
+	if err := d.Set("auto_scaling_compute_scale_down_enabled", cluster.AutoScaling.Compute.ScaleDownEnabled); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "auto_scaling_compute_scale_down_enabled", clusterName, err))
+	}
+
+	if err := d.Set("provider_auto_scaling_compute_min_instance_size", cluster.ProviderSettings.AutoScaling.Compute.MinInstanceSize); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "provider_auto_scaling_compute_min_instance_size", clusterName, err))
+	}
+
+	if err := d.Set("provider_auto_scaling_compute_max_instance_size", cluster.ProviderSettings.AutoScaling.Compute.MaxInstanceSize); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "provider_auto_scaling_compute_max_instance_size", clusterName, err))
 	}
 
 	if err := d.Set("auto_scaling_disk_gb_enabled", cluster.AutoScaling.DiskGBEnabled); err != nil {
@@ -444,6 +442,34 @@ func dataSourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(fmt.Errorf(errorClusterSetting, "labels", clusterName, err))
 	}
 
+	if err := d.Set("version_release_system", cluster.VersionReleaseSystem); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "version_release_system", clusterName, err))
+	}
+
+	if cluster.ProviderSettings != nil && cluster.ProviderSettings.ProviderName != "TENANT" {
+		containers, _, err := conn.Containers.List(ctx, projectID,
+			&matlas.ContainersListOptions{ProviderName: cluster.ProviderSettings.ProviderName})
+		if err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterRead, clusterName, err))
+		}
+
+		if err := d.Set("container_id", getContainerID(containers, cluster)); err != nil {
+			return diag.FromErr(fmt.Errorf(errorClusterSetting, "container_id", clusterName, err))
+		}
+	}
+
+	/*
+		Get the advaced configuration options and set up to the terraform state
+	*/
+	processArgs, _, err := conn.Clusters.GetProcessArgs(ctx, projectID, clusterName)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf(errorAdvancedConfRead, clusterName, err))
+	}
+
+	if err := d.Set("advanced_configuration", flattenProcessArgs(processArgs)); err != nil {
+		return diag.FromErr(fmt.Errorf(errorClusterSetting, "advanced_configuration", clusterName, err))
+	}
+
 	// Get the snapshot policy and set the data
 	snapshotBackupPolicy, err := flattenCloudProviderSnapshotBackupPolicy(ctx, d, conn, projectID, clusterName)
 	if err != nil {
@@ -459,34 +485,49 @@ func dataSourceMongoDBAtlasClusterRead(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func datasourceClusterPrivateEndpointRefreshFunc(name, projectID string, client *matlas.Client) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		cluster, resp, err := client.Clusters.Get(context.Background(), projectID, name)
-
-		if err != nil && cluster == nil && resp == nil {
-			return nil, "", err
-		} else if err != nil {
-			if resp.StatusCode == 404 {
-				return "", "DELETED", nil
-			}
-			if resp.StatusCode == 503 {
-				return "", "PENDING", nil
-			}
-			return nil, "", err
-		}
-
-		if cluster.ConnectionStrings != nil {
-			if cluster.ConnectionStrings.PrivateEndpoint == nil {
-				return cluster, "PRIVATE_ENDPOINTS_NIL", nil
-			}
-			if cluster.ConnectionStrings.PrivateEndpoint != nil && len(cluster.ConnectionStrings.PrivateEndpoint) == 0 {
-				return cluster, "PRIVATE_ENDPOINTS_EMPTY", nil
-			}
-			if cluster.ConnectionStrings.PrivateEndpoint != nil && len(cluster.ConnectionStrings.PrivateEndpoint) != 0 {
-				return cluster, "PRIVATE_ENDPOINTS_EXISTS", nil
-			}
-		}
-
-		return cluster, "NORMAL", nil
+func clusterAdvancedConfigurationSchemaComputed() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Computed: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"default_read_concern": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				"default_write_concern": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				"fail_index_key_too_long": {
+					Type:     schema.TypeBool,
+					Computed: true,
+				},
+				"javascript_enabled": {
+					Type:     schema.TypeBool,
+					Computed: true,
+				},
+				"minimum_enabled_tls_protocol": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				"no_table_scan": {
+					Type:     schema.TypeBool,
+					Computed: true,
+				},
+				"oplog_size_mb": {
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
+				"sample_size_bi_connector": {
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
+				"sample_refresh_interval_bi_connector": {
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
+			},
+		},
 	}
 }

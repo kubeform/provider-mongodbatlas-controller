@@ -86,7 +86,7 @@ func (r *ProviderAccessSetup) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range provideraccesssetupForceNewList {
+	for key, _ := range provideraccesssetupForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

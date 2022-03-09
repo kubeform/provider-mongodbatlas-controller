@@ -2,11 +2,13 @@ package mongodbatlas
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mwielbut/pointy"
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -64,6 +66,35 @@ func resourceMongoDBAtlasProject() *schema.Resource {
 					},
 				},
 			},
+			"project_owner_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"with_default_alerts_settings": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"api_keys": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"api_key_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role_names": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -73,13 +104,22 @@ func resourceMongoDBAtlasProjectCreate(ctx context.Context, d *schema.ResourceDa
 	conn := meta.(*MongoDBClient).Atlas
 
 	projectReq := &matlas.Project{
-		OrgID: d.Get("org_id").(string),
-		Name:  d.Get("name").(string),
+		OrgID:                     d.Get("org_id").(string),
+		Name:                      d.Get("name").(string),
+		WithDefaultAlertsSettings: pointy.Bool(d.Get("with_default_alerts_settings").(bool)),
 	}
 
-	project, _, err := conn.Projects.Create(ctx, projectReq)
+	var createProjectOptions *matlas.CreateProjectOptions
+
+	if projectOwnerID, ok := d.GetOk("project_owner_id"); ok {
+		createProjectOptions = &matlas.CreateProjectOptions{
+			ProjectOwnerID: projectOwnerID.(string),
+		}
+	}
+
+	project, _, err := conn.Projects.Create(ctx, projectReq, createProjectOptions)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectCreate, err))
+		return diag.Errorf(errorProjectCreate, err)
 	}
 
 	// Check if teams were set, if so we need to add the teams into the project
@@ -87,7 +127,20 @@ func resourceMongoDBAtlasProjectCreate(ctx context.Context, d *schema.ResourceDa
 		// adding the teams into the project
 		_, _, err := conn.Projects.AddTeamsToProject(ctx, project.ID, expandTeamsSet(teams.(*schema.Set)))
 		if err != nil {
-			return diag.FromErr(fmt.Errorf("error adding teams into the project: %s", err))
+			return diag.Errorf("error adding teams into the project: %s", err)
+		}
+	}
+
+	// Check if api keys were set, if so we need to add keys into the project
+	if apiKeys, ok := d.GetOk("api_keys"); ok {
+		// assign api keys to the project
+		for _, apiKey := range expandAPIKeysSet(apiKeys.(*schema.Set)) {
+			_, err := conn.ProjectAPIKeys.Assign(ctx, project.ID, apiKey.id, &matlas.AssignAPIKey{
+				Roles: apiKey.roles,
+			})
+			if err != nil {
+				return diag.Errorf("error assigning api keys to the project: %s", err)
+			}
 		}
 	}
 
@@ -107,32 +160,45 @@ func resourceMongoDBAtlasProjectRead(ctx context.Context, d *schema.ResourceData
 			return nil
 		}
 
-		return diag.FromErr(fmt.Errorf(errorProjectRead, projectID, err))
+		return diag.Errorf(errorProjectRead, projectID, err)
 	}
 
 	teams, _, err := conn.Projects.GetProjectTeamsAssigned(ctx, projectID)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error getting project's teams assigned (%s): %s", projectID, err))
+		return diag.Errorf("error getting project's teams assigned (%s): %s", projectID, err)
+	}
+
+	apiKeys, err := getProjectAPIKeys(ctx, conn, projectRes.OrgID, projectRes.ID)
+	if err != nil {
+		var target *matlas.ErrorResponse
+		if errors.As(err, &target) && target.ErrorCode != "USER_UNAUTHORIZED" {
+			return diag.Errorf("error getting project's api keys (%s): %s", projectID, err)
+		}
+		log.Println("[WARN] `api_keys` will be empty because the user has no permissions to read the api keys endpoint")
 	}
 
 	if err := d.Set("name", projectRes.Name); err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectSetting, `name`, projectID, err))
+		return diag.Errorf(errorProjectSetting, `name`, projectID, err)
 	}
 
 	if err := d.Set("org_id", projectRes.OrgID); err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectSetting, `org_id`, projectID, err))
+		return diag.Errorf(errorProjectSetting, `org_id`, projectID, err)
 	}
 
 	if err := d.Set("cluster_count", projectRes.ClusterCount); err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectSetting, `clusterCount`, projectID, err))
+		return diag.Errorf(errorProjectSetting, `clusterCount`, projectID, err)
 	}
 
 	if err := d.Set("created", projectRes.Created); err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectSetting, `created`, projectID, err))
+		return diag.Errorf(errorProjectSetting, `created`, projectID, err)
 	}
 
 	if err := d.Set("teams", flattenTeams(teams)); err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectSetting, `created`, projectID, err))
+		return diag.Errorf(errorProjectSetting, `created`, projectID, err)
+	}
+
+	if err := d.Set("api_keys", flattenAPIKeys(apiKeys)); err != nil {
+		return diag.Errorf(errorProjectSetting, `api_keys`, projectID, err)
 	}
 
 	return nil
@@ -146,11 +212,11 @@ func resourceMongoDBAtlasProjectUpdate(ctx context.Context, d *schema.ResourceDa
 		// get the current teams and the new teams with changes
 		newTeams, changedTeams, removedTeams := getStateTeams(d)
 
-		// adding new teans into the project
+		// adding new teams into the project
 		if len(newTeams) > 0 {
 			_, _, err := conn.Projects.AddTeamsToProject(ctx, projectID, expandTeamsList(newTeams))
 			if err != nil {
-				return diag.FromErr(fmt.Errorf("error adding teams into the project(%s): %s", projectID, err))
+				return diag.Errorf("error adding teams into the project(%s): %s", projectID, err)
 			}
 		}
 
@@ -160,7 +226,11 @@ func resourceMongoDBAtlasProjectUpdate(ctx context.Context, d *schema.ResourceDa
 
 			_, err := conn.Teams.RemoveTeamFromProject(ctx, projectID, teamID)
 			if err != nil {
-				return diag.FromErr(fmt.Errorf("error removing team(%s) from the project(%s): %s", teamID, projectID, err))
+				var target *matlas.ErrorResponse
+				if errors.As(err, &target) && target.ErrorCode != "USER_UNAUTHORIZED" {
+					return diag.Errorf("error removing team(%s) from the project(%s): %s", teamID, projectID, err)
+				}
+				log.Printf("[WARN] error removing team(%s) from the project(%s): %s", teamID, projectID, err)
 			}
 		}
 
@@ -174,7 +244,43 @@ func resourceMongoDBAtlasProjectUpdate(ctx context.Context, d *schema.ResourceDa
 				},
 			)
 			if err != nil {
-				return diag.FromErr(fmt.Errorf("error updating role names for the team(%s): %s", team["team_id"], err))
+				return diag.Errorf("error updating role names for the team(%s): %s", team["team_id"], err)
+			}
+		}
+	}
+
+	if d.HasChange("api_keys") {
+		// get the current api_keys and the new api_keys with changes
+		newAPIKeys, changedAPIKeys, removedAPIKeys := getStateAPIKeys(d)
+
+		// adding new api_keys into the project
+		if len(newAPIKeys) > 0 {
+			for _, apiKey := range expandAPIKeysList(newAPIKeys) {
+				_, err := conn.ProjectAPIKeys.Assign(ctx, projectID, apiKey.id, &matlas.AssignAPIKey{
+					Roles: apiKey.roles,
+				})
+				if err != nil {
+					return diag.Errorf("error assigning api_keys into the project(%s): %s", projectID, err)
+				}
+			}
+		}
+
+		// Removing api_keys from the project
+		for _, apiKey := range removedAPIKeys {
+			apiKeyID := apiKey.(map[string]interface{})["api_key_id"].(string)
+			_, err := conn.ProjectAPIKeys.Unassign(ctx, projectID, apiKeyID)
+			if err != nil {
+				return diag.Errorf("error removing api_key(%s) from the project(%s): %s", apiKeyID, projectID, err)
+			}
+		}
+
+		// Updating the role names for the api_key
+		for _, apiKey := range expandAPIKeysList(changedAPIKeys) {
+			_, err := conn.ProjectAPIKeys.Assign(ctx, projectID, apiKey.id, &matlas.AssignAPIKey{
+				Roles: apiKey.roles,
+			})
+			if err != nil {
+				return diag.Errorf("error updating role names for the api_key(%s): %s", apiKey, err)
 			}
 		}
 	}
@@ -188,7 +294,7 @@ func resourceMongoDBAtlasProjectDelete(ctx context.Context, d *schema.ResourceDa
 
 	_, err := conn.Projects.Delete(ctx, projectID)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf(errorProjectDelete, projectID, err))
+		return diag.Errorf(errorProjectDelete, projectID, err)
 	}
 
 	return nil
@@ -202,6 +308,20 @@ func expandTeamsSet(teams *schema.Set) []*matlas.ProjectTeam {
 		res[i] = &matlas.ProjectTeam{
 			TeamID:    v["team_id"].(string),
 			RoleNames: expandStringList(v["role_names"].(*schema.Set).List()),
+		}
+	}
+
+	return res
+}
+
+func expandAPIKeysSet(apiKeys *schema.Set) []*apiKey {
+	res := make([]*apiKey, apiKeys.Len())
+
+	for i, value := range apiKeys.List() {
+		v := value.(map[string]interface{})
+		res[i] = &apiKey{
+			id:    v["api_key_id"].(string),
+			roles: expandStringList(v["role_names"].(*schema.Set).List()),
 		}
 	}
 
@@ -222,6 +342,20 @@ func expandTeamsList(teams []interface{}) []*matlas.ProjectTeam {
 	return res
 }
 
+func expandAPIKeysList(apiKeys []interface{}) []*apiKey {
+	res := make([]*apiKey, len(apiKeys))
+
+	for i, value := range apiKeys {
+		v := value.(map[string]interface{})
+		res[i] = &apiKey{
+			id:    v["api_key_id"].(string),
+			roles: expandStringList(v["role_names"].(*schema.Set).List()),
+		}
+	}
+
+	return res
+}
+
 func flattenTeams(ta *matlas.TeamsAssigned) []map[string]interface{} {
 	teams := ta.Results
 	res := make([]map[string]interface{}, len(teams))
@@ -230,6 +364,19 @@ func flattenTeams(ta *matlas.TeamsAssigned) []map[string]interface{} {
 		res[i] = map[string]interface{}{
 			"team_id":    team.TeamID,
 			"role_names": team.RoleNames,
+		}
+	}
+
+	return res
+}
+
+func flattenAPIKeys(keys []*apiKey) []map[string]interface{} {
+	res := make([]map[string]interface{}, len(keys))
+
+	for i, key := range keys {
+		res[i] = map[string]interface{}{
+			"api_key_id": key.id,
+			"role_names": key.roles,
 		}
 	}
 
@@ -260,6 +407,34 @@ func getStateTeams(d *schema.ResourceData) (newTeams, changedTeams, removedTeams
 
 	newTeams = nTeams.List()
 	removedTeams = rTeams.List()
+
+	return
+}
+
+func getStateAPIKeys(d *schema.ResourceData) (newAPIKeys, changedAPIKeys, removedAPIKeys []interface{}) {
+	currentAPIKeys, changes := d.GetChange("api_keys")
+
+	rAPIKeys := currentAPIKeys.(*schema.Set).Difference(changes.(*schema.Set))
+	nAPIKeys := changes.(*schema.Set).Difference(currentAPIKeys.(*schema.Set))
+	changedAPIKeys = make([]interface{}, 0)
+
+	for _, changed := range nAPIKeys.List() {
+		for _, removed := range rAPIKeys.List() {
+			if changed.(map[string]interface{})["api_key_id"] == removed.(map[string]interface{})["api_key_id"] {
+				rAPIKeys.Remove(removed)
+			}
+		}
+
+		for _, current := range currentAPIKeys.(*schema.Set).List() {
+			if changed.(map[string]interface{})["api_key_id"] == current.(map[string]interface{})["api_key_id"] {
+				changedAPIKeys = append(changedAPIKeys, changed.(map[string]interface{}))
+				nAPIKeys.Remove(changed)
+			}
+		}
+	}
+
+	newAPIKeys = nAPIKeys.List()
+	removedAPIKeys = rAPIKeys.List()
 
 	return
 }

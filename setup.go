@@ -39,6 +39,7 @@ import (
 	admissionregistrationv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	advancedv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/advanced/v1alpha1"
 	alertv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/alert/v1alpha1"
 	auditingv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/auditing/v1alpha1"
 	cloudv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/cloud/v1alpha1"
@@ -53,6 +54,7 @@ import (
 	maintenancev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/maintenance/v1alpha1"
 	networkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/network/v1alpha1"
 	onlinev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/online/v1alpha1"
+	orgv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/org/v1alpha1"
 	privatev1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/private/v1alpha1"
 	privatelinkv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/privatelink/v1alpha1"
 	projectv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/project/v1alpha1"
@@ -61,6 +63,7 @@ import (
 	teamsv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/teams/v1alpha1"
 	thirdv1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/third/v1alpha1"
 	x509v1alpha1 "kubeform.dev/provider-mongodbatlas-api/apis/x509/v1alpha1"
+	controllersadvanced "kubeform.dev/provider-mongodbatlas-controller/controllers/advanced"
 	controllersalert "kubeform.dev/provider-mongodbatlas-controller/controllers/alert"
 	controllersauditing "kubeform.dev/provider-mongodbatlas-controller/controllers/auditing"
 	controllerscloud "kubeform.dev/provider-mongodbatlas-controller/controllers/cloud"
@@ -75,6 +78,7 @@ import (
 	controllersmaintenance "kubeform.dev/provider-mongodbatlas-controller/controllers/maintenance"
 	controllersnetwork "kubeform.dev/provider-mongodbatlas-controller/controllers/network"
 	controllersonline "kubeform.dev/provider-mongodbatlas-controller/controllers/online"
+	controllersorg "kubeform.dev/provider-mongodbatlas-controller/controllers/org"
 	controllersprivate "kubeform.dev/provider-mongodbatlas-controller/controllers/private"
 	controllersprivatelink "kubeform.dev/provider-mongodbatlas-controller/controllers/privatelink"
 	controllersproject "kubeform.dev/provider-mongodbatlas-controller/controllers/project"
@@ -270,6 +274,23 @@ func updateVWC(vwcClient *admissionregistrationv1.AdmissionregistrationV1Client,
 func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVersionKind, auditor *auditlib.EventPublisher, restrictToNamespace string) error {
 	switch gvk {
 	case schema.GroupVersionKind{
+		Group:   "advanced.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Cluster",
+	}:
+		if err := (&controllersadvanced.ClusterReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("Cluster"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_advanced_cluster"],
+			TypeName: "mongodbatlas_advanced_cluster",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+			return err
+		}
+	case schema.GroupVersionKind{
 		Group:   "alert.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
 		Kind:    "Configuration",
@@ -301,6 +322,91 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			TypeName: "mongodbatlas_auditing",
 		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Auditing")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSchedule",
+	}:
+		if err := (&controllerscloud.BackupScheduleReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("BackupSchedule"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_cloud_backup_schedule"],
+			TypeName: "mongodbatlas_cloud_backup_schedule",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "BackupSchedule")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshot",
+	}:
+		if err := (&controllerscloud.BackupSnapshotReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("BackupSnapshot"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_cloud_backup_snapshot"],
+			TypeName: "mongodbatlas_cloud_backup_snapshot",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "BackupSnapshot")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshotExportBucket",
+	}:
+		if err := (&controllerscloud.BackupSnapshotExportBucketReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("BackupSnapshotExportBucket"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_cloud_backup_snapshot_export_bucket"],
+			TypeName: "mongodbatlas_cloud_backup_snapshot_export_bucket",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "BackupSnapshotExportBucket")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshotExportJob",
+	}:
+		if err := (&controllerscloud.BackupSnapshotExportJobReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("BackupSnapshotExportJob"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_cloud_backup_snapshot_export_job"],
+			TypeName: "mongodbatlas_cloud_backup_snapshot_export_job",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "BackupSnapshotExportJob")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshotRestoreJob",
+	}:
+		if err := (&controllerscloud.BackupSnapshotRestoreJobReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("BackupSnapshotRestoreJob"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_cloud_backup_snapshot_restore_job"],
+			TypeName: "mongodbatlas_cloud_backup_snapshot_restore_job",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "BackupSnapshotRestoreJob")
 			return err
 		}
 	case schema.GroupVersionKind{
@@ -644,6 +750,23 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			return err
 		}
 	case schema.GroupVersionKind{
+		Group:   "org.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Invitation",
+	}:
+		if err := (&controllersorg.InvitationReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("Invitation"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_org_invitation"],
+			TypeName: "mongodbatlas_org_invitation",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Invitation")
+			return err
+		}
+	case schema.GroupVersionKind{
 		Group:   "private.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
 		Kind:    "IpMode",
@@ -695,6 +818,23 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			return err
 		}
 	case schema.GroupVersionKind{
+		Group:   "privatelink.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "EndpointServiceAdl",
+	}:
+		if err := (&controllersprivatelink.EndpointServiceAdlReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("EndpointServiceAdl"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_privatelink_endpoint_service_adl"],
+			TypeName: "mongodbatlas_privatelink_endpoint_service_adl",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "EndpointServiceAdl")
+			return err
+		}
+	case schema.GroupVersionKind{
 		Group:   "project.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
 		Kind:    "Project",
@@ -709,6 +849,23 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 			TypeName: "mongodbatlas_project",
 		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Project")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "project.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Invitation",
+	}:
+		if err := (&controllersproject.InvitationReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("Invitation"),
+			Scheme:   mgr.GetScheme(),
+			Gvk:      gvk,
+			Provider: _provider,
+			Resource: _provider.ResourcesMap["mongodbatlas_project_invitation"],
+			TypeName: "mongodbatlas_project_invitation",
+		}).SetupWithManager(ctx, mgr, auditor, restrictToNamespace); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Invitation")
 			return err
 		}
 	case schema.GroupVersionKind{
@@ -824,6 +981,15 @@ func SetupManager(ctx context.Context, mgr manager.Manager, gvk schema.GroupVers
 func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 	switch gvk {
 	case schema.GroupVersionKind{
+		Group:   "advanced.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Cluster",
+	}:
+		if err := (&advancedv1alpha1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
+			return err
+		}
+	case schema.GroupVersionKind{
 		Group:   "alert.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
 		Kind:    "Configuration",
@@ -839,6 +1005,51 @@ func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 	}:
 		if err := (&auditingv1alpha1.Auditing{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Auditing")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSchedule",
+	}:
+		if err := (&cloudv1alpha1.BackupSchedule{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupSchedule")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshot",
+	}:
+		if err := (&cloudv1alpha1.BackupSnapshot{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupSnapshot")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshotExportBucket",
+	}:
+		if err := (&cloudv1alpha1.BackupSnapshotExportBucket{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupSnapshotExportBucket")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshotExportJob",
+	}:
+		if err := (&cloudv1alpha1.BackupSnapshotExportJob{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupSnapshotExportJob")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "cloud.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "BackupSnapshotRestoreJob",
+	}:
+		if err := (&cloudv1alpha1.BackupSnapshotRestoreJob{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupSnapshotRestoreJob")
 			return err
 		}
 	case schema.GroupVersionKind{
@@ -1022,6 +1233,15 @@ func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 			return err
 		}
 	case schema.GroupVersionKind{
+		Group:   "org.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Invitation",
+	}:
+		if err := (&orgv1alpha1.Invitation{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Invitation")
+			return err
+		}
+	case schema.GroupVersionKind{
 		Group:   "private.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
 		Kind:    "IpMode",
@@ -1049,12 +1269,30 @@ func SetupWebhook(mgr manager.Manager, gvk schema.GroupVersionKind) error {
 			return err
 		}
 	case schema.GroupVersionKind{
+		Group:   "privatelink.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "EndpointServiceAdl",
+	}:
+		if err := (&privatelinkv1alpha1.EndpointServiceAdl{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "EndpointServiceAdl")
+			return err
+		}
+	case schema.GroupVersionKind{
 		Group:   "project.mongodbatlas.kubeform.com",
 		Version: "v1alpha1",
 		Kind:    "Project",
 	}:
 		if err := (&projectv1alpha1.Project{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Project")
+			return err
+		}
+	case schema.GroupVersionKind{
+		Group:   "project.mongodbatlas.kubeform.com",
+		Version: "v1alpha1",
+		Kind:    "Invitation",
+	}:
+		if err := (&projectv1alpha1.Invitation{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Invitation")
 			return err
 		}
 	case schema.GroupVersionKind{
