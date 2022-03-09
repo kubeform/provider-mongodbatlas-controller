@@ -89,7 +89,7 @@ func (r *ClusterConfig) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range clusterconfigForceNewList {
+	for key, _ := range clusterconfigForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

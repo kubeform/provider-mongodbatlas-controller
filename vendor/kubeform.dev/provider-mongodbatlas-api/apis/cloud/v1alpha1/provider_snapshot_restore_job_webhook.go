@@ -99,7 +99,7 @@ func (r *ProviderSnapshotRestoreJob) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range providersnapshotrestorejobForceNewList {
+	for key, _ := range providersnapshotrestorejobForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

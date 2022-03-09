@@ -59,6 +59,8 @@ type EndpointSpecResource struct {
 	ID string `json:"id,omitempty" tf:"id,omitempty"`
 
 	// +optional
+	EndpointGroupNames []string `json:"endpointGroupNames,omitempty" tf:"endpoint_group_names"`
+	// +optional
 	EndpointServiceName *string `json:"endpointServiceName,omitempty" tf:"endpoint_service_name"`
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty" tf:"error_message"`
@@ -75,6 +77,10 @@ type EndpointSpecResource struct {
 	ProjectID                    *string `json:"projectID" tf:"project_id"`
 	ProviderName                 *string `json:"providerName" tf:"provider_name"`
 	Region                       *string `json:"region" tf:"region"`
+	// +optional
+	RegionName *string `json:"regionName,omitempty" tf:"region_name"`
+	// +optional
+	ServiceAttachmentNames []string `json:"serviceAttachmentNames,omitempty" tf:"service_attachment_names"`
 	// +optional
 	Status *string `json:"status,omitempty" tf:"status"`
 }

@@ -45,6 +45,7 @@ var peeringForceNewList = map[string]bool{
 	"/atlas_cidr_block": true,
 	"/container_id":     true,
 	"/project_id":       true,
+	"/vpc_id":           true,
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
@@ -90,7 +91,7 @@ func (r *Peering) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range peeringForceNewList {
+	for key, _ := range peeringForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

@@ -88,7 +88,7 @@ func (r *AtRest) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range atrestForceNewList {
+	for key, _ := range atrestForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
 	matlas "go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -42,7 +41,7 @@ func resourceMongoDBAtlasPrivateLinkEndpoint() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"AWS", "AZURE"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"AWS", "AZURE", "GCP"}, false),
 			},
 			"region": {
 				Type:     schema.TypeString,
@@ -86,6 +85,24 @@ func resourceMongoDBAtlasPrivateLinkEndpoint() *schema.Resource {
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"endpoint_group_names": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"region_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"service_attachment_names": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 		},
 	}
@@ -191,6 +208,18 @@ func resourceMongoDBAtlasPrivateLinkEndpointRead(ctx context.Context, d *schema.
 		return diag.FromErr(fmt.Errorf(errorPrivateLinkEndpointsSetting, "region", privateLinkID, err))
 	}
 
+	if err := d.Set("endpoint_group_names", privateEndpoint.EndpointGroupNames); err != nil {
+		return diag.FromErr(fmt.Errorf(errorPrivateLinkEndpointsSetting, "endpoint_group_names", privateLinkID, err))
+	}
+
+	if err := d.Set("region_name", privateEndpoint.RegionName); err != nil {
+		return diag.FromErr(fmt.Errorf(errorPrivateLinkEndpointsSetting, "region_name", privateLinkID, err))
+	}
+
+	if err := d.Set("service_attachment_names", privateEndpoint.ServiceAttachmentNames); err != nil {
+		return diag.FromErr(fmt.Errorf(errorPrivateLinkEndpointsSetting, "service_attachment_names", privateLinkID, err))
+	}
+
 	return nil
 }
 
@@ -217,7 +246,7 @@ func resourceMongoDBAtlasPrivateLinkEndpointDelete(ctx context.Context, d *schem
 		Pending:    []string{"DELETING"},
 		Target:     []string{"DELETED", "FAILED"},
 		Refresh:    resourcePrivateLinkEndpointRefreshFunc(ctx, conn, projectID, providerName, privateLinkID),
-		Timeout:    10 * time.Minute,
+		Timeout:    1 * time.Hour,
 		MinTimeout: 5 * time.Second,
 		Delay:      3 * time.Second,
 	}
@@ -234,7 +263,8 @@ func resourceMongoDBAtlasPrivateLinkEndpointImportState(ctx context.Context, d *
 	conn := meta.(*MongoDBClient).Atlas
 
 	parts := strings.Split(d.Id(), "-")
-	if len(parts) != 6 && len(parts) != 4 {
+
+	if len(parts) != 6 && len(parts) != 5 && len(parts) != 4 {
 		return nil, errors.New("import format error: to import a MongoDB Private Endpoint, use the format {project_id}-{private_link_id}-{provider_name}-{region}")
 	}
 
@@ -242,6 +272,9 @@ func resourceMongoDBAtlasPrivateLinkEndpointImportState(ctx context.Context, d *
 	privateLinkID := parts[1]
 	providerName := parts[2]
 	region := parts[3] // If region it's azure or Atlas format like US_EAST_1
+	if len(parts) == 5 {
+		region = fmt.Sprintf("%s-%s", parts[3], parts[4])
+	}
 	if len(parts) == 6 {
 		region = fmt.Sprintf("%s-%s-%s", parts[3], parts[4], parts[5])
 	}

@@ -86,7 +86,7 @@ func (r *Auditing) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	for key := range auditingForceNewList {
+	for key, _ := range auditingForceNewList {
 		keySplit := strings.Split(key, "/*")
 		length := len(keySplit)
 		checkIfAnyDif := false

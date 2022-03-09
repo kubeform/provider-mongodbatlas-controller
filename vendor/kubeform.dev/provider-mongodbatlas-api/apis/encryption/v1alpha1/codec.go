@@ -19,15 +19,26 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"unsafe"
+
 	jsoniter "github.com/json-iterator/go"
+	"github.com/modern-go/reflect2"
 )
 
 func GetEncoder() map[string]jsoniter.ValEncoder {
-	return map[string]jsoniter.ValEncoder{}
+	return map[string]jsoniter.ValEncoder{
+		jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAwsKmsConfig{}).Type1()):         AtRestSpecAwsKmsConfigCodec{},
+		jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAzureKeyVaultConfig{}).Type1()):  AtRestSpecAzureKeyVaultConfigCodec{},
+		jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecGoogleCloudKmsConfig{}).Type1()): AtRestSpecGoogleCloudKmsConfigCodec{},
+	}
 }
 
 func GetDecoder() map[string]jsoniter.ValDecoder {
-	return map[string]jsoniter.ValDecoder{}
+	return map[string]jsoniter.ValDecoder{
+		jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAwsKmsConfig{}).Type1()):         AtRestSpecAwsKmsConfigCodec{},
+		jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAzureKeyVaultConfig{}).Type1()):  AtRestSpecAzureKeyVaultConfigCodec{},
+		jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecGoogleCloudKmsConfig{}).Type1()): AtRestSpecGoogleCloudKmsConfigCodec{},
+	}
 }
 
 func getEncodersWithout(typ string) map[string]jsoniter.ValEncoder {
@@ -40,4 +51,241 @@ func getDecodersWithout(typ string) map[string]jsoniter.ValDecoder {
 	origMap := GetDecoder()
 	delete(origMap, typ)
 	return origMap
+}
+
+// +k8s:deepcopy-gen=false
+type AtRestSpecAwsKmsConfigCodec struct {
+}
+
+func (AtRestSpecAwsKmsConfigCodec) IsEmpty(ptr unsafe.Pointer) bool {
+	return (*AtRestSpecAwsKmsConfig)(ptr) == nil
+}
+
+func (AtRestSpecAwsKmsConfigCodec) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+	obj := (*AtRestSpecAwsKmsConfig)(ptr)
+	var objs []AtRestSpecAwsKmsConfig
+	if obj != nil {
+		objs = []AtRestSpecAwsKmsConfig{*obj}
+	}
+
+	jsonit := jsoniter.Config{
+		EscapeHTML:             true,
+		SortMapKeys:            true,
+		ValidateJsonRawMessage: true,
+		TagKey:                 "tf",
+		TypeEncoders:           getEncodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAwsKmsConfig{}).Type1())),
+	}.Froze()
+
+	byt, _ := jsonit.Marshal(objs)
+
+	stream.Write(byt)
+}
+
+func (AtRestSpecAwsKmsConfigCodec) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+	switch iter.WhatIsNext() {
+	case jsoniter.NilValue:
+		iter.Skip()
+		*(*AtRestSpecAwsKmsConfig)(ptr) = AtRestSpecAwsKmsConfig{}
+		return
+	case jsoniter.ArrayValue:
+		objsByte := iter.SkipAndReturnBytes()
+		if len(objsByte) > 0 {
+			var objs []AtRestSpecAwsKmsConfig
+
+			jsonit := jsoniter.Config{
+				EscapeHTML:             true,
+				SortMapKeys:            true,
+				ValidateJsonRawMessage: true,
+				TagKey:                 "tf",
+				TypeDecoders:           getDecodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAwsKmsConfig{}).Type1())),
+			}.Froze()
+			jsonit.Unmarshal(objsByte, &objs)
+
+			if len(objs) > 0 {
+				*(*AtRestSpecAwsKmsConfig)(ptr) = objs[0]
+			} else {
+				*(*AtRestSpecAwsKmsConfig)(ptr) = AtRestSpecAwsKmsConfig{}
+			}
+		} else {
+			*(*AtRestSpecAwsKmsConfig)(ptr) = AtRestSpecAwsKmsConfig{}
+		}
+	case jsoniter.ObjectValue:
+		objByte := iter.SkipAndReturnBytes()
+		if len(objByte) > 0 {
+			var obj AtRestSpecAwsKmsConfig
+
+			jsonit := jsoniter.Config{
+				EscapeHTML:             true,
+				SortMapKeys:            true,
+				ValidateJsonRawMessage: true,
+				TagKey:                 "tf",
+				TypeDecoders:           getDecodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAwsKmsConfig{}).Type1())),
+			}.Froze()
+			jsonit.Unmarshal(objByte, &obj)
+
+			*(*AtRestSpecAwsKmsConfig)(ptr) = obj
+		} else {
+			*(*AtRestSpecAwsKmsConfig)(ptr) = AtRestSpecAwsKmsConfig{}
+		}
+	default:
+		iter.ReportError("decode AtRestSpecAwsKmsConfig", "unexpected JSON type")
+	}
+}
+
+// +k8s:deepcopy-gen=false
+type AtRestSpecAzureKeyVaultConfigCodec struct {
+}
+
+func (AtRestSpecAzureKeyVaultConfigCodec) IsEmpty(ptr unsafe.Pointer) bool {
+	return (*AtRestSpecAzureKeyVaultConfig)(ptr) == nil
+}
+
+func (AtRestSpecAzureKeyVaultConfigCodec) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+	obj := (*AtRestSpecAzureKeyVaultConfig)(ptr)
+	var objs []AtRestSpecAzureKeyVaultConfig
+	if obj != nil {
+		objs = []AtRestSpecAzureKeyVaultConfig{*obj}
+	}
+
+	jsonit := jsoniter.Config{
+		EscapeHTML:             true,
+		SortMapKeys:            true,
+		ValidateJsonRawMessage: true,
+		TagKey:                 "tf",
+		TypeEncoders:           getEncodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAzureKeyVaultConfig{}).Type1())),
+	}.Froze()
+
+	byt, _ := jsonit.Marshal(objs)
+
+	stream.Write(byt)
+}
+
+func (AtRestSpecAzureKeyVaultConfigCodec) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+	switch iter.WhatIsNext() {
+	case jsoniter.NilValue:
+		iter.Skip()
+		*(*AtRestSpecAzureKeyVaultConfig)(ptr) = AtRestSpecAzureKeyVaultConfig{}
+		return
+	case jsoniter.ArrayValue:
+		objsByte := iter.SkipAndReturnBytes()
+		if len(objsByte) > 0 {
+			var objs []AtRestSpecAzureKeyVaultConfig
+
+			jsonit := jsoniter.Config{
+				EscapeHTML:             true,
+				SortMapKeys:            true,
+				ValidateJsonRawMessage: true,
+				TagKey:                 "tf",
+				TypeDecoders:           getDecodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAzureKeyVaultConfig{}).Type1())),
+			}.Froze()
+			jsonit.Unmarshal(objsByte, &objs)
+
+			if len(objs) > 0 {
+				*(*AtRestSpecAzureKeyVaultConfig)(ptr) = objs[0]
+			} else {
+				*(*AtRestSpecAzureKeyVaultConfig)(ptr) = AtRestSpecAzureKeyVaultConfig{}
+			}
+		} else {
+			*(*AtRestSpecAzureKeyVaultConfig)(ptr) = AtRestSpecAzureKeyVaultConfig{}
+		}
+	case jsoniter.ObjectValue:
+		objByte := iter.SkipAndReturnBytes()
+		if len(objByte) > 0 {
+			var obj AtRestSpecAzureKeyVaultConfig
+
+			jsonit := jsoniter.Config{
+				EscapeHTML:             true,
+				SortMapKeys:            true,
+				ValidateJsonRawMessage: true,
+				TagKey:                 "tf",
+				TypeDecoders:           getDecodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecAzureKeyVaultConfig{}).Type1())),
+			}.Froze()
+			jsonit.Unmarshal(objByte, &obj)
+
+			*(*AtRestSpecAzureKeyVaultConfig)(ptr) = obj
+		} else {
+			*(*AtRestSpecAzureKeyVaultConfig)(ptr) = AtRestSpecAzureKeyVaultConfig{}
+		}
+	default:
+		iter.ReportError("decode AtRestSpecAzureKeyVaultConfig", "unexpected JSON type")
+	}
+}
+
+// +k8s:deepcopy-gen=false
+type AtRestSpecGoogleCloudKmsConfigCodec struct {
+}
+
+func (AtRestSpecGoogleCloudKmsConfigCodec) IsEmpty(ptr unsafe.Pointer) bool {
+	return (*AtRestSpecGoogleCloudKmsConfig)(ptr) == nil
+}
+
+func (AtRestSpecGoogleCloudKmsConfigCodec) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+	obj := (*AtRestSpecGoogleCloudKmsConfig)(ptr)
+	var objs []AtRestSpecGoogleCloudKmsConfig
+	if obj != nil {
+		objs = []AtRestSpecGoogleCloudKmsConfig{*obj}
+	}
+
+	jsonit := jsoniter.Config{
+		EscapeHTML:             true,
+		SortMapKeys:            true,
+		ValidateJsonRawMessage: true,
+		TagKey:                 "tf",
+		TypeEncoders:           getEncodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecGoogleCloudKmsConfig{}).Type1())),
+	}.Froze()
+
+	byt, _ := jsonit.Marshal(objs)
+
+	stream.Write(byt)
+}
+
+func (AtRestSpecGoogleCloudKmsConfigCodec) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+	switch iter.WhatIsNext() {
+	case jsoniter.NilValue:
+		iter.Skip()
+		*(*AtRestSpecGoogleCloudKmsConfig)(ptr) = AtRestSpecGoogleCloudKmsConfig{}
+		return
+	case jsoniter.ArrayValue:
+		objsByte := iter.SkipAndReturnBytes()
+		if len(objsByte) > 0 {
+			var objs []AtRestSpecGoogleCloudKmsConfig
+
+			jsonit := jsoniter.Config{
+				EscapeHTML:             true,
+				SortMapKeys:            true,
+				ValidateJsonRawMessage: true,
+				TagKey:                 "tf",
+				TypeDecoders:           getDecodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecGoogleCloudKmsConfig{}).Type1())),
+			}.Froze()
+			jsonit.Unmarshal(objsByte, &objs)
+
+			if len(objs) > 0 {
+				*(*AtRestSpecGoogleCloudKmsConfig)(ptr) = objs[0]
+			} else {
+				*(*AtRestSpecGoogleCloudKmsConfig)(ptr) = AtRestSpecGoogleCloudKmsConfig{}
+			}
+		} else {
+			*(*AtRestSpecGoogleCloudKmsConfig)(ptr) = AtRestSpecGoogleCloudKmsConfig{}
+		}
+	case jsoniter.ObjectValue:
+		objByte := iter.SkipAndReturnBytes()
+		if len(objByte) > 0 {
+			var obj AtRestSpecGoogleCloudKmsConfig
+
+			jsonit := jsoniter.Config{
+				EscapeHTML:             true,
+				SortMapKeys:            true,
+				ValidateJsonRawMessage: true,
+				TagKey:                 "tf",
+				TypeDecoders:           getDecodersWithout(jsoniter.MustGetKind(reflect2.TypeOf(AtRestSpecGoogleCloudKmsConfig{}).Type1())),
+			}.Froze()
+			jsonit.Unmarshal(objByte, &obj)
+
+			*(*AtRestSpecGoogleCloudKmsConfig)(ptr) = obj
+		} else {
+			*(*AtRestSpecGoogleCloudKmsConfig)(ptr) = AtRestSpecGoogleCloudKmsConfig{}
+		}
+	default:
+		iter.ReportError("decode AtRestSpecGoogleCloudKmsConfig", "unexpected JSON type")
+	}
 }
